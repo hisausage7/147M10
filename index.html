@@ -311,7 +311,7 @@
           padding-bottom: 30px;
         }
 
-        /* ✅ 手機把 timer 變成下一行靠右，視覺更乾淨也不會靠近右上按鈕 */
+        /* ✅ 手機把 timer 變成下一行靠右 */
         .quiz-top {
           flex-direction: column;
           align-items: flex-start;
@@ -344,32 +344,44 @@
         }
       }
 
-      /* ====== ✅ 結算表格：題目欄加寬，避免被拉超長 ====== */
-      #results table {
+      /* ====== ✅ 結算表格欄寬：OX最小、其他三欄平均 ====== */
+      #resultsTable {
         min-width: 860px;
+        table-layout: fixed; /* 關鍵 */
       }
-      #results table th:nth-child(1),
-      #results table td:nth-child(1) {
-        width: 55%;
-        min-width: 420px;
+
+      /* OX 最小 */
+      #resultsTable col.col-ox {
+        width: 56px;
       }
-      #results table th:nth-child(3),
-      #results table td:nth-child(3) {
-        width: 35%;
-        min-width: 260px;
+      /* 其他三欄平均 */
+      #resultsTable col.col-q,
+      #resultsTable col.col-your,
+      #resultsTable col.col-ans {
+        width: calc((100% - 56px) / 3);
       }
-      #results table th:nth-child(4),
-      #results table td:nth-child(4) {
-        width: 10%;
-        min-width: 70px;
+
+      /* 讓 O/X 置中 */
+      #resultsTable th:nth-child(4),
+      #resultsTable td:nth-child(4) {
         text-align: center;
         white-space: nowrap;
       }
 
+      /* 手機：因為第2欄會隱藏，所以改成 2 欄平均 + OX 最小 */
       @media (max-width: 540px) {
-        /* 題目少換行，靠橫向滑動看完整 */
-        #results table td:nth-child(1) {
-          white-space: nowrap;
+        #resultsTable {
+          min-width: 640px; /* 手機橫向滑動更順 */
+        }
+        #resultsTable col.col-ox {
+          width: 40px;
+        }
+        #resultsTable col.col-your {
+          width: 0px; /* 因為會 display:none */
+        }
+        #resultsTable col.col-q,
+        #resultsTable col.col-ans {
+          width: calc((100% - 40px) / 2);
         }
       }
 
@@ -402,7 +414,6 @@
           <p>!版權及源代碼所有-航機系008沈崑宸!</p>
           <p>!僅作為自我測驗使用!</p>
           <p>!此章節不含圖片題</p>
-         
         </div>
 
         <input
@@ -469,7 +480,13 @@
         <div id="wrongMemInfoResults" class="muted" style="text-align: center; margin-top: 10px"></div>
 
         <div class="table-responsive">
-          <table>
+          <table id="resultsTable">
+            <colgroup>
+              <col class="col-q" />
+              <col class="col-your" />
+              <col class="col-ans" />
+              <col class="col-ox" />
+            </colgroup>
             <thead>
               <tr>
                 <th>題目</th>
@@ -2502,10 +2519,12 @@
         var wrongSet = {}; // key -> {t,q,a,s}
 
         function djb2Hash(str) {
-          var hash = 5381, i, c;
+          var hash = 5381,
+            i,
+            c;
           for (i = 0; i < str.length; i++) {
             c = str.charCodeAt(i);
-            hash = ((hash << 5) + hash) + c;
+            hash = (hash << 5) + hash + c;
             hash = hash & 0x7fffffff;
           }
           return hash.toString(16);
@@ -2527,7 +2546,7 @@
             var raw = localStorage.getItem(storeKeyByName(name));
             if (!raw) return {};
             var obj = JSON.parse(raw);
-            return (obj && typeof obj === "object") ? obj : {};
+            return obj && typeof obj === "object" ? obj : {};
           } catch (e) {
             return {};
           }
@@ -2540,7 +2559,8 @@
         }
 
         function wrongCount(setObj) {
-          var c = 0, k;
+          var c = 0,
+            k;
           for (k in setObj) if (setObj.hasOwnProperty(k)) c++;
           return c;
         }
@@ -2587,8 +2607,11 @@
         }
 
         function formatTimeMs(ms) {
-          try { return new Date(ms).toLocaleString(); }
-          catch (e) { return String(ms || ""); }
+          try {
+            return new Date(ms).toLocaleString();
+          } catch (e) {
+            return String(ms || "");
+          }
         }
 
         function renderWrongList() {
@@ -2612,15 +2635,28 @@
 
           wrongQs.forEach(function (q, idx) {
             var rec = wrongSet[qKey(q)] || {};
-            var correctText = q.options.find(function (o) { return o.charAt(0) === q.answer; }) || (q.answer || "");
+            var correctText =
+              q.options.find(function (o) {
+                return o.charAt(0) === q.answer;
+              }) || q.answer || "";
             var tr = document.createElement("tr");
             tr.className = "wrong";
             tr.innerHTML =
-              '<td class="mono">#' + (idx + 1) + "</td>" +
-              "<td>" + (q.question || "") + "</td>" +
-              "<td>" + (rec.s || "") + "</td>" +
-              '<td class="mono ans-cell">' + (q.answer + "｜" + correctText) + "</td>" +
-              '<td class="mono">' + formatTimeMs(rec.t) + "</td>";
+              '<td class="mono">#' +
+              (idx + 1) +
+              "</td>" +
+              "<td>" +
+              (q.question || "") +
+              "</td>" +
+              "<td>" +
+              (rec.s || "") +
+              "</td>" +
+              '<td class="mono ans-cell">' +
+              (q.answer + "｜" + correctText) +
+              "</td>" +
+              '<td class="mono">' +
+              formatTimeMs(rec.t) +
+              "</td>";
             tb.appendChild(tr);
           });
         }
@@ -2629,12 +2665,16 @@
         function shuffle(array) {
           for (var i = array.length - 1; i > 0; i--) {
             var j = Math.floor(Math.random() * (i + 1));
-            var tmp = array[i]; array[i] = array[j]; array[j] = tmp;
+            var tmp = array[i];
+            array[i] = array[j];
+            array[j] = tmp;
           }
           return array;
         }
         function fmtTime(s) {
-          var m = Math.floor(s / 60).toString().padStart(2, "0");
+          var m = Math.floor(s / 60)
+            .toString()
+            .padStart(2, "0");
           var sec = (s % 60).toString().padStart(2, "0");
           return m + ":" + sec;
         }
@@ -2648,7 +2688,7 @@
         }
 
         function showView(idToShow) {
-          var ids = ["welcome","quiz","results","bank","wrongReview"];
+          var ids = ["welcome", "quiz", "results", "bank", "wrongReview"];
           for (var i = 0; i < ids.length; i++) {
             var id = ids[i];
             var el = document.getElementById(id);
@@ -2665,7 +2705,7 @@
         function applyInitialTheme() {
           try {
             var saved = localStorage.getItem("theme");
-            var isDark = (saved === "dark") || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches);
+            var isDark = saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches);
             document.body.classList.toggle("dark", isDark);
             darkBtn.setAttribute("aria-pressed", String(isDark));
           } catch (e) {}
@@ -2676,12 +2716,18 @@
           var willDark = !document.body.classList.contains("dark");
           document.body.classList.toggle("dark", willDark);
           darkBtn.setAttribute("aria-pressed", String(willDark));
-          try { localStorage.setItem("theme", willDark ? "dark" : "light"); } catch (e) {}
+          try {
+            localStorage.setItem("theme", willDark ? "dark" : "light");
+          } catch (e) {}
         });
 
         /* ====== 狀態 ====== */
         var shuffledQuestions;
-        var current = 0, total = 0, timer = 80 * 60, interval, answers = [];
+        var current = 0,
+          total = 0,
+          timer = 80 * 60,
+          interval,
+          answers = [];
         var quizActive = false;
         var progressBar = document.getElementById("progressBar");
 
@@ -2757,7 +2803,10 @@
 
         /* ====== 錯題畫面入口 ====== */
         function openWrongPanel() {
-          if (quizActive) { alert("測驗進行中不可進入錯題記憶畫面。"); return; }
+          if (quizActive) {
+            alert("測驗進行中不可進入錯題記憶畫面。");
+            return;
+          }
 
           var n = "";
           if (wrongNameInput && wrongNameInput.value) n = wrongNameInput.value;
@@ -2770,8 +2819,8 @@
           updateWrongMemInfo();
 
           if (wrongNameInput) wrongNameInput.value = currentUserName;
-          if (wrongQuestionLimit) wrongQuestionLimit.value = (questionLimitInput && questionLimitInput.value) ? questionLimitInput.value : "";
-          if (wrongDurationInput) wrongDurationInput.value = (durationInput && durationInput.value) ? durationInput.value : "80";
+          if (wrongQuestionLimit) wrongQuestionLimit.value = questionLimitInput && questionLimitInput.value ? questionLimitInput.value : "";
+          if (wrongDurationInput) wrongDurationInput.value = durationInput && durationInput.value ? durationInput.value : "80";
 
           renderWrongList();
           showView("wrongReview");
@@ -2780,8 +2829,12 @@
         if (openWrongPanelFromWelcome) openWrongPanelFromWelcome.addEventListener("click", openWrongPanel);
         if (openWrongPanelFromResults) openWrongPanelFromResults.addEventListener("click", openWrongPanel);
 
-        if (backToWelcomeFromWrong) backToWelcomeFromWrong.addEventListener("click", function () { showView("welcome"); });
-        if (toBankFromWrong) toBankFromWrong.addEventListener("click", function () { enterBank(); });
+        if (backToWelcomeFromWrong) backToWelcomeFromWrong.addEventListener("click", function () {
+          showView("welcome");
+        });
+        if (toBankFromWrong) toBankFromWrong.addEventListener("click", function () {
+          enterBank();
+        });
 
         if (wrongNameInput) {
           wrongNameInput.addEventListener("input", function () {
@@ -2812,7 +2865,10 @@
 
         if (startWrongQuizBtn) {
           startWrongQuizBtn.addEventListener("click", function () {
-            if (quizActive) { alert("測驗進行中不可開始錯題測驗。"); return; }
+            if (quizActive) {
+              alert("測驗進行中不可開始錯題測驗。");
+              return;
+            }
 
             currentUserName = safeName(wrongNameInput ? wrongNameInput.value : currentUserName);
             if (currentUserName && currentUserName !== "_guest") {
@@ -2824,12 +2880,15 @@
             updateWrongMemInfo();
 
             var wrongQs = getWrongQuestionsFromBank();
-            if (!wrongQs.length) { alert("目前沒有錯題記憶 🎉"); return; }
+            if (!wrongQs.length) {
+              alert("目前沒有錯題記憶 🎉");
+              return;
+            }
 
-            var qLimit = parseInt((wrongQuestionLimit && wrongQuestionLimit.value) ? wrongQuestionLimit.value : "", 10);
+            var qLimit = parseInt(wrongQuestionLimit && wrongQuestionLimit.value ? wrongQuestionLimit.value : "", 10);
             if (!qLimit || qLimit <= 0) qLimit = wrongQs.length;
 
-            var minutes = parseInt((wrongDurationInput && wrongDurationInput.value) ? wrongDurationInput.value : "80", 10);
+            var minutes = parseInt(wrongDurationInput && wrongDurationInput.value ? wrongDurationInput.value : "80", 10);
             if (isNaN(minutes)) minutes = 80;
             minutes = Math.max(1, Math.min(999, minutes));
 
@@ -2868,7 +2927,10 @@
 
           if (!n) {
             var savedN = loadSavedName();
-            if (savedN) { n = savedN; nameInput.value = savedN; }
+            if (savedN) {
+              n = savedN;
+              nameInput.value = savedN;
+            }
           }
           if (!n) return alert("請輸入姓名 / Enter your name");
           if (!qLimit || qLimit <= 0) return alert("請輸入要作答的題數 / Enter number of questions");
@@ -2879,7 +2941,7 @@
           wrongSet = loadWrongSet(currentUserName);
           updateWrongMemInfo();
 
-          var minutes = parseInt((durationInput && durationInput.value) ? durationInput.value : "80", 10);
+          var minutes = parseInt(durationInput && durationInput.value ? durationInput.value : "80", 10);
           if (isNaN(minutes)) minutes = 80;
           minutes = Math.max(1, Math.min(999, minutes));
 
@@ -2911,27 +2973,62 @@
         });
 
         prevBtn.addEventListener("click", function () {
-          if (current > 0) { current--; answers.pop(); showQ(); }
+          if (current > 0) {
+            current--;
+            answers.pop();
+            showQ();
+          }
         });
 
         leaveBtn.addEventListener("click", finish);
-        retryBtn.addEventListener("click", function () { location.reload(); });
-        showWrongBtn.addEventListener("click", function () { renderResults(answers.filter(function (a) { return !a.correct; })); });
-        showAllBtn.addEventListener("click", function () { renderResults(answers); });
+        retryBtn.addEventListener("click", function () {
+          location.reload();
+        });
+        showWrongBtn.addEventListener("click", function () {
+          renderResults(
+            answers.filter(function (a) {
+              return !a.correct;
+            })
+          );
+        });
+        showAllBtn.addEventListener("click", function () {
+          renderResults(answers);
+        });
 
         openBankBtn.addEventListener("click", enterBank);
         toBankFromResults.addEventListener("click", enterBank);
 
         /* ====== 題庫 ====== */
-        perPageSel.addEventListener("change", function () { page = 1; renderBank(); });
+        perPageSel.addEventListener("change", function () {
+          page = 1;
+          renderBank();
+        });
         bankSearch.addEventListener("input", applyFilter);
-        prevPageBtn.addEventListener("click", function () { if (page > 1) { page--; renderBank(); } });
-        nextPageBtn.addEventListener("click", function () { if (page < totalPages()) { page++; renderBank(); } });
-        backToWelcome.addEventListener("click", function () { showView("welcome"); });
+        prevPageBtn.addEventListener("click", function () {
+          if (page > 1) {
+            page--;
+            renderBank();
+          }
+        });
+        nextPageBtn.addEventListener("click", function () {
+          if (page < totalPages()) {
+            page++;
+            renderBank();
+          }
+        });
+        backToWelcome.addEventListener("click", function () {
+          showView("welcome");
+        });
 
         function enterBank() {
-          if (quizActive) { alert("測驗進行中不可瀏覽題庫。"); return; }
-          if (!bankSearch.value) { bankFiltered = questions.slice(); page = 1; }
+          if (quizActive) {
+            alert("測驗進行中不可瀏覽題庫。");
+            return;
+          }
+          if (!bankSearch.value) {
+            bankFiltered = questions.slice();
+            page = 1;
+          }
           renderBank();
           showView("bank");
         }
@@ -2954,33 +3051,48 @@
         function renderBank() {
           bankBody.innerHTML = "";
           var sel = perPageSel.value;
-          var per = (sel === "all") ? bankFiltered.length : parseInt(sel || "10", 10);
+          var per = sel === "all" ? bankFiltered.length : parseInt(sel || "10", 10);
           var start = (page - 1) * per;
-          var items = (sel === "all") ? bankFiltered.slice() : bankFiltered.slice(start, start + per);
+          var items = sel === "all" ? bankFiltered.slice() : bankFiltered.slice(start, start + per);
 
           for (var i = 0; i < items.length; i++) {
             var q = items[i];
             var tr = document.createElement("tr");
-            var num = (sel === "all") ? (i + 1) : (start + i + 1);
+            var num = sel === "all" ? i + 1 : start + i + 1;
             var correctText = "";
             for (var k = 0; k < q.options.length; k++) {
-              if (q.options[k].charAt(0) === q.answer) { correctText = q.options[k]; break; }
+              if (q.options[k].charAt(0) === q.answer) {
+                correctText = q.options[k];
+                break;
+              }
             }
 
             var optsHtml = "";
             for (var j = 0; j < q.options.length; j++) {
               var o = q.options[j];
-              var isC = (o.charAt(0) === q.answer);
-              optsHtml += '<span class="opt-row ' + (isC ? 'is-correct' : '') + '">' +
-                          (isC ? '<span class="ans-chip">正解</span>' : '') +
-                          o + '</span>';
+              var isC = o.charAt(0) === q.answer;
+              optsHtml +=
+                '<span class="opt-row ' +
+                (isC ? "is-correct" : "") +
+                '">' +
+                (isC ? '<span class="ans-chip">正解</span>' : "") +
+                o +
+                "</span>";
             }
 
             tr.innerHTML =
-              '<td class="mono">#' + num + "</td>" +
-              "<td>" + q.question + "</td>" +
-              "<td>" + optsHtml + "</td>" +
-              '<td class="mono ans-cell">' + (q.answer + "｜" + correctText) + "</td>";
+              '<td class="mono">#' +
+              num +
+              "</td>" +
+              "<td>" +
+              q.question +
+              "</td>" +
+              "<td>" +
+              optsHtml +
+              "</td>" +
+              '<td class="mono ans-cell">' +
+              (q.answer + "｜" + correctText) +
+              "</td>";
             bankBody.appendChild(tr);
           }
 
@@ -2993,8 +3105,8 @@
           } else {
             if (pagination) pagination.style.display = "flex";
             pageInfo.textContent = "第 " + page + " / " + tp + " 頁（共 " + bankFiltered.length + " 題）";
-            prevPageBtn.disabled = (page <= 1);
-            nextPageBtn.disabled = (page >= tp);
+            prevPageBtn.disabled = page <= 1;
+            nextPageBtn.disabled = page >= tp;
           }
         }
 
@@ -3028,7 +3140,10 @@
               rd.onchange = function () {
                 var correctText = "";
                 for (var k = 0; k < q.options.length; k++) {
-                  if (q.options[k].charAt(0) === q.answer) { correctText = q.options[k]; break; }
+                  if (q.options[k].charAt(0) === q.answer) {
+                    correctText = q.options[k];
+                    break;
+                  }
                 }
 
                 if (opt.isAnswer) unmarkWrong(q);
@@ -3038,7 +3153,7 @@
                   q: q,
                   selectedText: opt.text,
                   correctText: correctText,
-                  correct: opt.isAnswer
+                  correct: opt.isAnswer,
                 });
 
                 current++;
@@ -3067,8 +3182,7 @@
           var right = 0;
           for (var i = 0; i < answers.length; i++) if (answers[i].correct) right++;
 
-          document.getElementById("scoreSummary").innerText =
-            "答對 " + right + " 題 / 已作答 " + answers.length + " 題 / 共 " + total + " 題";
+          document.getElementById("scoreSummary").innerText = "答對 " + right + " 題 / 已作答 " + answers.length + " 題 / 共 " + total + " 題";
 
           wrongSet = loadWrongSet(currentUserName);
           updateWrongMemInfo();
@@ -3081,10 +3195,18 @@
             var a = data[i];
             var tr = document.createElement("tr");
             tr.innerHTML =
-              "<td>" + a.q.question + "</td>" +
-              "<td>" + a.selectedText + "</td>" +
-              '<td class="ans-cell">' + a.correctText + "</td>" +
-              "<td>" + (a.correct ? "O" : "X") + "</td>";
+              "<td>" +
+              a.q.question +
+              "</td>" +
+              "<td>" +
+              a.selectedText +
+              "</td>" +
+              '<td class="ans-cell">' +
+              a.correctText +
+              "</td>" +
+              "<td>" +
+              (a.correct ? "O" : "X") +
+              "</td>";
             if (!a.correct) tr.classList.add("wrong");
             tb.appendChild(tr);
           }
