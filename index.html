@@ -1,0 +1,3104 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>147測驗｜單一檔案版</title>
+
+    <!-- 預先套用主題避免閃爍 -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("theme");
+          if (saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+            document.documentElement.classList.add("preload-dark");
+            document.documentElement.setAttribute("data-theme", "dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <style>
+      :root {
+        --bg: #f0f4f8;
+        --txt: #000;
+        --card: #fff;
+        --rule: #e9ecef;
+        --muted: #666;
+        --primary: #007bff;
+        --primary-800: #0056b3;
+        --danger: #dc3545;
+        --green: #28a745;
+        --green-800: #218838;
+        --teal: #17a2b8;
+        --teal-800: #138496;
+        --table-bd: #ccc;
+
+        /* 正解強調（淺色） */
+        --ans-chip-bg: #e7f6ec;
+        --ans-chip-fg: #136d3a;
+        --ans-row-bg: #f5fbf7;
+        --ans-row-bd: #cce8d5;
+      }
+      body.dark {
+        --bg: #121212;
+        --txt: #fff;
+        --card: #1e1e1e;
+        --rule: #333;
+        --table-bd: #444;
+        --muted: #aaa;
+
+        /* 正解強調（深色） */
+        --ans-chip-bg: #1f3a29;
+        --ans-chip-fg: #b9f6ca;
+        --ans-row-bg: #12301f;
+        --ans-row-bd: #2c5a3f;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 40px;
+        font-size: clamp(16px, 1.1vw + 12px, 24px);
+        background: var(--bg);
+        color: var(--txt);
+        transition: background-color 0.4s, color 0.4s;
+      }
+
+      #container {
+        max-width: 1320px;
+        margin: auto;
+        background: var(--card);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.4s, color 0.4s;
+      }
+
+      .hidden {
+        display: none;
+      }
+      h1,
+      h2 {
+        text-align: center;
+        font-size: 1.6em;
+        margin: 0.2em 0 0.6em;
+      }
+      #rules {
+        background: var(--rule);
+        padding: 16px;
+        margin-bottom: 28px;
+        border-radius: 10px;
+        font-size: 0.95em;
+      }
+
+      .btn {
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        padding: 14px 24px;
+        margin: 8px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 0.95em;
+        transition: background-color 0.2s, transform 0.1s;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        background: var(--primary-800);
+      }
+      #leaveBtn {
+        background: var(--danger);
+      }
+      #openBankBtn {
+        background: var(--teal);
+      }
+      #openBankBtn:hover {
+        background: var(--teal-800);
+      }
+
+      /* 進度條 */
+      #progress,
+      #timer {
+        font-weight: bold;
+        font-size: 1em;
+      }
+      .progress-container {
+        background: #ddd;
+        height: 10px;
+        border-radius: 5px;
+        margin-top: 14px;
+        overflow: hidden;
+      }
+      body.dark .progress-container {
+        background: #555;
+      }
+      .progress-bar {
+        height: 100%;
+        width: 0;
+        background: var(--primary);
+        transition: width 0.6s ease;
+      }
+
+      .question {
+        margin: 24px 0 12px;
+        font-size: 1.2em;
+      }
+      .options label {
+        display: block;
+        margin-bottom: 12px;
+        font-size: 1em;
+      }
+
+      /* 表格與響應式容器 */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+        font-size: 1em;
+        min-width: 460px;
+      }
+      th,
+      td {
+        border: 1px solid var(--table-bd);
+        padding: 12px 14px;
+        text-align: left;
+        vertical-align: top;
+        color: var(--txt);
+        word-break: break-word;
+      }
+
+      /* 錯題列色（深色模式改亮字） */
+      tr.wrong {
+        background-color: #ffe6e6;
+      }
+      body.dark tr.wrong {
+        background-color: #5a1a1a;
+      }
+      body.dark tr.wrong td {
+        color: #fff;
+      }
+
+      /* 正解強調 */
+      .ans-chip {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--ans-chip-bg);
+        color: var(--ans-chip-fg);
+        font-size: 0.9em;
+        margin-right: 6px;
+      }
+      .ans-cell {
+        background: var(--ans-row-bg) !important;
+        border-left: 3px solid var(--ans-row-bd) !important;
+        color: var(--txt) !important;
+      }
+      .opt-row {
+        display: block;
+        padding: 4px 6px;
+        margin: 2px 0;
+        border-radius: 6px;
+      }
+      .opt-row.is-correct {
+        background: var(--ans-row-bg) !important;
+        border-left: 3px solid var(--ans-row-bd) !important;
+        color: var(--txt) !important;
+      }
+      tr.wrong td.ans-cell {
+        background: var(--ans-row-bg) !important;
+        color: var(--txt) !important;
+      }
+
+      /* 右上角按鈕固定（位置不變） */
+      #darkModeToggle,
+      #homeBtn {
+        position: fixed;
+        right: 20px;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.95em;
+        z-index: 2000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      #darkModeToggle {
+        top: 20px;
+        background: #333;
+        color: #fff;
+      }
+      #darkModeToggle:hover {
+        background: #555;
+      }
+      #homeBtn {
+        top: 68px;
+        background: var(--green);
+        color: #fff;
+        text-decoration: none;
+      }
+      #homeBtn:hover {
+        background: var(--green-800);
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+      }
+      .muted {
+        opacity: 0.8;
+        color: var(--muted);
+      }
+
+      .panel {
+        background: var(--rule);
+        border-radius: 12px;
+        padding: 14px;
+        margin: 10px 0;
+      }
+
+      /* ====== ✅ 測驗頁置中（只影響 quiz） ====== */
+      body.view-quiz {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        /* ✅ 避開右上固定按鈕區域，確保 timer 永遠不被蓋 */
+        padding-top: 130px;
+        padding-left: 20px;
+        padding-right: 20px;
+        padding-bottom: 40px;
+      }
+      body.view-quiz #container {
+        margin: 0 auto;
+        width: min(1320px, 100%);
+      }
+
+      /* 測驗頁頂部列（名字+timer） */
+      .quiz-top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* 小尺寸優化 */
+      @media (max-width: 768px) {
+        body {
+          padding: 20px;
+          font-size: clamp(14px, 2.2vw + 8px, 17px);
+        }
+        #container {
+          padding: 20px;
+          border-radius: 16px;
+        }
+        .btn {
+          padding: 12px 16px;
+          margin: 6px;
+          font-size: 0.95em;
+        }
+
+        /* ✅ 測驗頁置中時也保留避開固定按鈕 */
+        body.view-quiz {
+          padding-top: 120px;
+          padding-bottom: 30px;
+        }
+
+        /* ✅ 手機把 timer 變成下一行靠右，視覺更乾淨也不會靠近右上按鈕 */
+        .quiz-top {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        #timer {
+          align-self: flex-end;
+          margin-left: 0;
+          padding: 4px 10px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.08);
+        }
+        body.dark #timer {
+          background: rgba(255, 255, 255, 0.1);
+        }
+      }
+
+      @media (max-width: 540px) {
+        /* 手機上把「您的答案」隱藏，保留題目/正解/OX */
+        #results table th:nth-child(2),
+        #results table td:nth-child(2) {
+          display: none;
+        }
+      }
+      @media (max-width: 420px) {
+        #bank .controls,
+        #wrongReview .controls {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+      }
+
+      /* ====== ✅ 結算表格：題目欄加寬，避免被拉超長 ====== */
+      #results table {
+        min-width: 860px;
+      }
+      #results table th:nth-child(1),
+      #results table td:nth-child(1) {
+        width: 55%;
+        min-width: 420px;
+      }
+      #results table th:nth-child(3),
+      #results table td:nth-child(3) {
+        width: 35%;
+        min-width: 260px;
+      }
+      #results table th:nth-child(4),
+      #results table td:nth-child(4) {
+        width: 10%;
+        min-width: 70px;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 540px) {
+        /* 題目少換行，靠橫向滑動看完整 */
+        #results table td:nth-child(1) {
+          white-space: nowrap;
+        }
+      }
+
+      /* 預載深色 */
+      .preload-dark body,
+      .preload-dark {
+        background: #121212;
+        color: #fff;
+      }
+    </style>
+  </head>
+
+  <body>
+    <button id="darkModeToggle" aria-pressed="false">深色模式 / Dark Mode</button>
+    <a id="homeBtn" href="https://hisausage7.github.io/147test/" title="回首頁">🏠 回首頁</a>
+
+    <div id="container">
+      <!-- 歡迎頁 -->
+      <div id="welcome">
+        <h1>147測驗M10-校內考</h1>
+
+        <div id="rules">
+          <p><strong>考試注意事項 / Exam Rules:</strong></p>
+          <p>1. 請輸入姓名後才能開始作答。 / You must enter your name to start the quiz.</p>
+          <p>2. 考試限時可自訂（預設 80 分鐘,可設定至999分鐘），開始後自動倒數。</p>
+          <p>3. 作答途中可隨時點擊「離開考試」提前結束。</p>
+          <p>4. 完成後會自動顯示所有答題結果與成績。</p>
+          <p>5. 答對題目顯示O，答錯題目顯示X。</p>
+          <p>6. 測驗過程為亂序出題。</p>
+          <p>!版權及源代碼所有-航機系008沈崑宸!</p>
+          <p>!僅作為自我測驗使用!</p>
+          <p>!此章節不含圖片題</p>
+         
+        </div>
+
+        <input
+          type="text"
+          id="nameInput"
+          placeholder="輸入姓名 / Enter your name"
+          style="width: 100%; padding: 8px; margin-bottom: 10px; font-size: 1em"
+        />
+        <input
+          type="number"
+          id="questionLimit"
+          placeholder="輸入題數,至多376題 / Enter number of questions"
+          style="width: 100%; padding: 8px; margin-bottom: 10px; font-size: 1em"
+        />
+        <input
+          type="number"
+          id="durationInput"
+          value="80"
+          min="1"
+          max="999"
+          placeholder="作答時間（分鐘，預設 80,可設定置999分鐘）"
+          style="width: 100%; padding: 8px; margin-bottom: 10px; font-size: 1em"
+        />
+
+        <div style="text-align: center; display: flex; flex-wrap: wrap; justify-content: center">
+          <button id="startBtn" class="btn">開始測驗 / Start Quiz</button>
+          <button id="openWrongPanelFromWelcome" class="btn" style="background: #6f42c1">錯題記憶 / Wrong Memory</button>
+          <button id="openBankBtn" class="btn">題庫瀏覽 / Browse Bank</button>
+          <button id="clearSavedNameBtn" class="btn" style="background: #343a40">清除記住的姓名</button>
+        </div>
+
+        <div id="wrongMemInfoWelcome" class="muted" style="text-align: center; margin-top: 10px"></div>
+      </div>
+
+      <!-- 測驗頁 -->
+      <div id="quiz" class="hidden">
+        <div class="quiz-top">
+          <span id="welcomeName"></span>
+          <span id="timer" style="margin-left: auto">80:00</span>
+        </div>
+
+        <div class="mono" id="progress">題數: <span id="current">0</span> / <span id="total">0</span></div>
+        <div class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
+        <div class="question" id="questionText"></div>
+        <div class="options" id="options"></div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <button id="prevBtn" class="btn" style="background: #6c757d">上一題 / Previous</button>
+          <button id="leaveBtn" class="btn">離開考試 / Leave Quiz</button>
+        </div>
+      </div>
+
+      <!-- 結果頁 -->
+      <div id="results" class="hidden">
+        <h2>測驗結果 / Results</h2>
+
+        <div style="display: flex; flex-wrap: wrap; justify-content: center">
+          <button id="retryBtn" class="btn">重新開始 / Retry</button>
+          <button id="showWrongBtn" class="btn" style="background: #ffc107">只看錯題 / Wrong Only</button>
+          <button id="showAllBtn" class="btn">看全部結果 / Show All</button>
+          <button id="openWrongPanelFromResults" class="btn" style="background: #6f42c1">錯題記憶 / Wrong Memory</button>
+          <button id="toBankFromResults" class="btn" style="background: #17a2b8">題庫瀏覽 / Browse Bank</button>
+        </div>
+
+        <div id="wrongMemInfoResults" class="muted" style="text-align: center; margin-top: 10px"></div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>題目</th>
+                <th>您的答案</th>
+                <th>正確答案</th>
+                <th>結果</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+        <div id="scoreSummary" style="text-align: center; margin-top: 12px; font-size: 1em"></div>
+      </div>
+
+      <!-- 錯題記憶畫面 -->
+      <div id="wrongReview" class="hidden">
+        <h2>錯題記憶 / Wrong Memory</h2>
+
+        <div class="panel">
+          <div class="muted" style="margin-bottom: 10px">
+            這裡會列出你「仍然答錯過」的題目。你之後做對同一題，會自動從清單移除。
+          </div>
+
+          <div class="controls" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center">
+            <input
+              id="wrongNameInput"
+              type="text"
+              placeholder="姓名（留空=使用首頁姓名或 _guest）"
+              style="flex: 1; min-width: 240px; padding: 8px; font-size: 1em"
+            />
+            <input
+              id="wrongQuestionLimit"
+              type="number"
+              placeholder="錯題測驗題數（留空=全部）"
+              style="flex: 1; min-width: 240px; padding: 8px; font-size: 1em"
+            />
+            <input
+              id="wrongDurationInput"
+              type="number"
+              value="80"
+              min="1"
+              max="999"
+              placeholder="錯題測驗時間（分鐘）"
+              style="flex: 1; min-width: 240px; padding: 8px; font-size: 1em"
+            />
+          </div>
+
+          <div style="text-align: center; margin-top: 10px">
+            <button id="startWrongQuizBtn" class="btn" style="background: #6f42c1">開始錯題測驗 / Start Wrong Quiz</button>
+            <button id="clearWrongMemBtn" class="btn" style="background: #343a40">清除錯題記憶 / Clear Wrong</button>
+            <button id="backToWelcomeFromWrong" class="btn" style="background: #6c757d">返回首頁 / Home</button>
+            <button id="toBankFromWrong" class="btn" style="background: #17a2b8">題庫瀏覽 / Browse Bank</button>
+          </div>
+
+          <div id="wrongMemInfoPanel" class="muted" style="text-align: center; margin-top: 10px"></div>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 70px">#</th>
+                <th>錯題題目</th>
+                <th style="width: 28%">上次選的答案</th>
+                <th style="width: 22%">正確答案</th>
+                <th style="width: 180px">最後答錯時間</th>
+              </tr>
+            </thead>
+            <tbody id="wrongListBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 題庫瀏覽頁 -->
+      <div id="bank" class="hidden">
+        <h2>題庫瀏覽 / Question Bank</h2>
+        <div class="controls">
+          <input id="bankSearch" type="text" placeholder="關鍵字搜尋" />
+          <label>
+            每頁顯示
+            <select id="perPage">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="all">全部</option>
+            </select>
+            題
+          </label>
+          <button id="backToWelcome" class="btn" style="padding: 12px 18px">返回首頁 / Home</button>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 70px">#</th>
+                <th>題目</th>
+                <th style="width: 34%">選項</th>
+                <th style="width: 160px">正確答案</th>
+              </tr>
+            </thead>
+            <tbody id="bankBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px">
+          <button id="prevPage" class="btn" style="padding: 10px 16px">上一頁</button>
+          <span id="pageInfo" class="mono"></span>
+          <button id="nextPage" class="btn" style="padding: 10px 16px">下一頁</button>
+        </div>
+        <div style="text-align: center; margin-top: 8px">
+          <small class="muted">提示：可用右上角「深色模式」切換外觀；搜尋支援中英文與數字。</small>
+        </div>
+      </div>
+    </div>
+    
+
+    <script>
+            document.addEventListener("DOMContentLoaded", function () {
+              const questions = [
+  
+  {
+    question: "民用航空法由…",
+    options: ["A. … 民航局訂立 。", "B. … 交通部訂立 。", "C. … 立法院訂立 。"],
+    answer: "C"
+  },
+  {
+    question: "民用航空法上定義之航空器為何?\n(1) 多發動機定翼機\n(2) 單發動機旋翼機\n(3) 熱氣球",
+    options: ["A. 僅(1)為航空器。", "B. (1)和(2)為航空器。", "C. (1)、(2)及(3)皆為航空器。"],
+    answer: "C"
+  },
+  {
+    question: "民用航空法上定義之飛機為何?\n(1) 多發動機定翼機\n(2) 單發動機旋翼機\n(3) 熱氣球",
+    options: ["A. 僅(1)為飛機。", "B. (1)和(2)為飛機。", "C. (1)和(3)為飛機。"],
+    answer: "A"
+  },
+  {
+    question: "何法規訂臺灣需符合國際民用航空標準法則?",
+    options: ["A. 憲法", "B. 民用航空法", "C. 民用航空運輸業管理規則"],
+    answer: "B"
+  },
+  {
+    question: "ICAO公約包含那些?\n(1) 一般航空\n(2) 商用航空\n(3) 軍用航空",
+    options: ["A. 僅(1)", "B. 僅(2)", "C. (1)和(2)"],
+    answer: "C"
+  },
+  {
+    question: "民航通告由…",
+    options: ["A. … 民航局訂立 。", "B. … 交通部訂立 。", "C. … 行政院訂立 。"],
+    answer: "A"
+  },
+  {
+    question: "何法規定臺灣需符合國際民用航空標準法則?",
+    options: ["A. 憲法", "B. 民用航空法", "C. 民用航空運輸業管理規則"],
+    answer: "B"
+  },
+  {
+    question: "ICAO公約包含那些?\n(1) 一般航空\n(2) 商用航空\n(3) 軍用航空",
+    options: ["A. 僅(1)", "B. 僅(2)", "C. (1)和(2)"],
+    answer: "C"
+  },
+  {
+    question: "民航通告由…",
+    options: ["A. … 民航局訂立 。", "B. … 交通部訂立 。", "C. … 行政院訂立 。"],
+    answer: "A"
+  },
+  {
+    question: "交通部為管理民用航空事業，設立 …",
+    options: ["A. 民航局", "B. 物資局", "C. 運輸局"],
+    answer: "A"
+  },
+  {
+    question: "民用航空法上定義之飛機為何?\n(1) 多發動機定翼機\n(2) 單發動機旋翼機\n(3) 熱氣球",
+    options: ["A. 僅(1)為飛機。", "B. (1)和(2)為飛機。", "C. (1)和(3)為飛機。"],
+    answer: "A"
+  },
+  {
+    question: "何法規訂臺灣需符合國際民用航空標準法則?",
+    options: ["A. 憲法", "B. 民用航空法", "C. 民用航空運輸業管理規則"],
+    answer: "B"
+  },
+  {
+    question: "我國民用航空法規彙編為共幾冊?",
+    options: ["A. 一冊", "B. 二冊", "C. 三冊"],
+    answer: "B"
+  },
+  {
+    question: "我國民用航空法規第二冊內之規則編列之最後皆以何英文字母代表?",
+    options: ["A. 字母A", "B. 字母B", "C. 字母C"],
+    answer: "B"
+  },
+  {
+    question: "我國民用航空法規內之規則編列以05開頭者為 …",
+    options: ["A. 空運管理類", "B. 航管類", "C. 人員檢定與訓練類"],
+    answer: "C"
+  },
+  {
+    question: "我國民用航空法規內之規則編列以03開頭者為 …",
+    options: ["A. 空運管理類", "B. 航管類", "C. 人員檢定與訓練類"],
+    answer: "A"
+  },
+  {
+    question: "我國民用航空法規內之規則編列以06開頭者為 …",
+    options: ["A. 空運管理類", "B. 航管類", "C. 器材檢定類"],
+    answer: "C"
+  },
+  {
+    question: "我國民用航空法規內之規則編列以07開頭者為 …",
+    options: ["A. 空運管理類", "B. 航管類", "C. 飛安類"],
+    answer: "C"
+  },
+  {
+    question: "申請地面機械員檢定證者，其學科檢定應於規定時間內完成，並以幾次為限?",
+    options: ["A. 兩次", "B. 三次", "C. 六次"],
+    answer: "C"
+  },
+  {
+    question: "申請地面機械員檢定證者，其術科檢定應於規定時間內完成，並以幾次為限?",
+    options: ["A. 兩次", "B. 三次", "C. 六次"],
+    answer: "B"
+  },
+  {
+    question: "地面機械員檢定證申請人之學術科檢定成績於規定時間內有不及格之情形者，就其不及格部分得於:",
+    options: ["A. 收到民航局成績通知後三十日以後申請複檢。", "B. 檢定完成日起三十日以後申請複檢。", "C. 收到民航局成績通知後九十日以後申請複檢。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員檢定證申請人應於術科合格完成日起多少日內，檢具學術科檢定合格文件送民航局申請發證?",
+    options: ["A. 十四", "B. 三十", "C. 四十五"],
+    answer: "B"
+  },
+  {
+    question: "航空人員檢定證屆期重簽，得於何時辦理?",
+    options: ["A. 屆期前三個月內", "B. 屆期前六個月內", "C. 過期後十五日內"],
+    answer: "A"
+  },
+  {
+    question: "地面機械員之檢定類別A為：",
+    options: ["A. 航空電子維護檢定", "B. 停機線航空器維護檢定", "C. 航空器機體型別及發動機型別維護檢定"],
+    answer: "B"
+  },
+  {
+    question: "地面機械員之檢定類別B1為：",
+    options: ["A. 航空電子維護檢定", "B. 停機線航空器維護檢定", "C. 航空器機體型別及發動機型別維護檢定"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員之檢定類別B2為：",
+    options: ["A. 航空電子維護檢定", "B. 停機線航空器維護檢定", "C. 航空器機體型別及發動機型別維護檢定"],
+    answer: "A"
+  },
+  {
+    question: "地面機械員之檢定類別不含其子類別共分成幾類?",
+    options: ["A. 兩類", "B. 三類", "C. 四類"],
+    answer: "C"
+  },
+  {
+    question: "下列何種人員不需領取民航局簽發之航空人員檢定證：",
+    options: ["A. 航空器簽派員", "B. 客艙組員", "C. 飛航管制員"],
+    answer: "B"
+  },
+  {
+    question: "航空人員檢定證經撤銷或廢止者，多久時間內不得申請同類航空人員檢定?",
+    options: ["A. 一年", "B. 兩年", "C. 三年"],
+    answer: "A"
+  },
+  {
+    question: "地面機械員之檢定類別、其A1子類、B1.1子類係為：",
+    options: ["A. 裝置渦輪式發動機之直昇機航空機械維護檢定。", "B. 裝置渦輪式發動機之飛機航空機械維護檢定。", "C. 裝置活塞式發動機之直昇機航空機械維護檢定。"],
+    answer: "B"
+  },
+  {
+    question: "地面機械員之檢定類別、其A3子類、B1.3子類係為：",
+    options: ["A. 裝置渦輪式發動機之直昇機航空機械維護檢定。", "B. 裝置渦輪式發動機之飛機航空機械維護檢定。", "C. 裝置活塞式發動機之直昇機航空機械維護檢定。"],
+    answer: "A"
+  },
+  {
+    question: "地面機械員之檢定類別、其A4子類、B1.4子類係為：",
+    options: ["A. 裝置渦輪式發動機之直昇機航空機械維護檢定。", "B. 裝置渦輪式發動機之飛機航空機械維護檢定。", "C. 裝置活塞式發動機之直昇機航空機械維護檢定。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員A類檢定證，申請者資格條件下列何者為非：",
+    options: ["A. 需年滿十八歲", "B. 具所申請檢定類別之航空器實際維修兩年以上工作經驗。", "C. 持有飛航修護技術士證或大學、學院以上相關科系畢業，完成相關技術訓練，並具實際維修二年以上之工作經驗。"],
+    answer: "B"
+  },
+  {
+    question: "地面機械員B2類檢定證，申請者資格條件下列何者為非：",
+    options: ["A. 需年滿二十歲", "B. 具所申請檢定類別之航空器實際維修五年以上工作經驗。", "C. 持有飛航修護技術士證或大學、學院以上相關科系畢業，完成相關技術訓練，並具實際維修四年以上之工作經驗。"],
+    answer: "A"
+  },
+  {
+    question: "地面機械員檢定證之學識等級共分為：",
+    options: ["A. 兩級", "B. 三級", "C. 四級"],
+    answer: "B"
+  },
+  {
+    question: "地面機械員檢定證持有者，申請新增檢定類別或子類別，須提出符合相關之航空器實際維修經驗。 申請人若於民用航空人員地面機械員訓練機構修畢所申請檢定子類別相關訓練課程：",
+    options: ["A. 可抵減五分之一半實際維修經驗需求。", "B. 可抵減四分之一半實際維修經驗需求。", "C. 可抵減一半實際維修經驗需求。"],
+    answer: "C"
+  },
+  {
+    question: "申請地面機械員A類、B1類、B2類及C類檢定證者，學科檢定合格後始得實施術科檢定；術科檢定應於：",
+    options: ["A. 第一次學科檢定日起二年內完成。", "B. 完成學科檢定日起二年內完成。", "C. 第一次學科檢定日起三年內完成。"],
+    answer: "B"
+  },
+  {
+    question: "航空器型別訓練之三級訓練內容為：",
+    options: ["A. 過境訓練。", "B. 基地維護訓練。", "C. 停機線與基地維護訓練。"],
+    answer: "C"
+  },
+  {
+    question: "航空器型别訓練考驗及格成績為：",
+    options: ["A. 60%。", "B. 70%。", "C. 75%。"],
+    answer: "C"
+  },
+  {
+    question: "維修員經檢定取得地面機械員檢定證時，應：",
+    options: ["A. 繳回其維修員檢定證。", "B. 由本人報請民航局繳銷。", "C. 由航空公司報請民航局繳銷。"],
+    answer: "A"
+  },
+  {
+    question: "維修員因故不再履行其檢定權利時，其檢定證應：",
+    options: ["A. 繳回其維修員檢定證。", "B. 由本人報請民航局繳銷。", "C. 由航空公司或維修廠報請民航局繳銷。"],
+    answer: "C"
+  },
+  {
+    question: "下列何者非持有維修員檢定證之維修員權限?",
+    options: ["A. 執行航空器零組件維修或督導。", "B. 執行航空器改裝及恢復可用簽證。", "C. 執行航空器之適航簽證。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員各類檢定名稱之定義其A類指：",
+    options: ["A. 航空器機體型別及發動機型別維護檢定。", "B. 航空電子維護檢定。", "C. 停機線航空器維護檢定。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員各類檢定名稱之定義其B1類指：",
+    options: ["A. 航空電子維護檢定。", "B. 停機線航空器維護檢定。", "C. 航空器機體型別及發動機型別維護檢定。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員各類檢定名稱之定義其B2類指：",
+    options: ["A. 維修廠完成航空器維護簽證檢定。", "B. 航空器機體型別及發動機型別維護檢定。", "C. 航空電子維護檢定。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員各類檢定名稱之定義其C類指：",
+    options: ["A. 停機線航空器維護檢定。", "B. 航空電子維護檢定。", "C. 維修廠完成航空器維護簽證檢定。"],
+    answer: "C"
+  },
+  {
+    question: "各類地面機械員行使其檢定證執行業務之權限，需符合：",
+    options: ["A. 過去一年內具有相關型別航空器六個月實際維修經驗。", "B. 過去兩年內具有相關型別航空器六個月實際維修經驗。", "C. 過去三年內具有相關型別航空器六個月實際維修經驗。"],
+    answer: "B"
+  },
+  {
+    question: "航空人員檢定給證管理規則為",
+    options: ["A. 05-01A", "B. 05-02A", "C. 06-01A"],
+    answer: "A"
+  },
+  {
+    question: "誰可執行停機線飛機之恢復可用簽證?",
+    options: ["A. 持地面機械員A類檢定證者", "B. 持地面機械員B1.1類檢定證者", "C. 持地面機械員B1.3類檢定證者"],
+    answer: "B"
+  },
+  {
+    question: "誰可執行維修廠飛機之恢復可用簽證?",
+    options: ["A. 持地面機械員A類檢定證者", "B. 持地面機械員B1類檢定證者", "C. 持地面機械員B2類檢定證者"],
+    answer: "B"
+  },
+  {
+    question: "航空人員檢定給證管理規則為",
+    options: ["A. 05-01A", "B. 05-02A", "C. 06-01A"],
+    answer: "A"
+  },
+  {
+    question: "誰可執行停機線飛機之恢復可用簽證?",
+    options: ["A. 持地面機械員A類檢定證者", "B. 持地面機械員B1.1類檢定證者", "C. 持地面機械員B1.3類檢定證者"],
+    answer: "B"
+  },
+  {
+    question: "誰可執行維修廠飛機之恢復可用簽證?",
+    options: ["A. 持地面機械員A類檢定證者", "B. 持地面機械員B1類檢定證者", "C. 持地面機械員B2類檢定證者"],
+    answer: "B"
+  },
+  {
+    question: "申請地面機械員檢定證者，其學科檢定應於規定時間內完成，並以幾次為限?",
+    options: ["A. 兩次", "B. 三次", "C. 六次"],
+    answer: "C"
+  },
+  {
+    question: "申請地面機械員檢定證者，其術科檢定應於規定時間內完成，並以幾次為限?",
+    options: ["A. 兩次", "B. 三次", "C. 六次"],
+    answer: "B"
+  },
+  {
+    question: "地面機械員檢定證申請人之學術科檢定成績於規定時間內有不及格之情形者，就其不及格部分得於:",
+    options: ["A. 收到民航局成績通知後三十日以後申請複檢。", "B. 檢定完成日起三十日以後申請複檢。", "C. 收到民航局成績通知後九十日以後申請複檢。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員檢定證申請人應於術科合格完成日起多少日內，檢具學術科檢定合格文件送民航局申請發證?",
+    options: ["A. 十四", "B. 三十", "C. 四十五"],
+    answer: "B"
+  },
+  {
+    question: "航空人員檢定證屆期重簽，得於何時辦理?",
+    options: ["A. 屆期前三個月內", "B. 屆期前六個月內", "C. 過期後十五日內"],
+    answer: "A"
+  },
+  {
+    question: "地面機械員之檢定類別A為：",
+    options: ["A. 航空電子維護檢定", "B. 停機線航空器維護檢定", "C. 航空器機體型別及發動機型別維護檢定"],
+    answer: "B"
+  },
+  {
+    question: "地面機械員之檢定類別B1為：",
+    options: ["A. 航空電子維護檢定", "B. 停機線航空器維護檢定", "C. 航空器機體型別及發動機型別維護檢定"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員之檢定類別B2為：",
+    options: ["A. 航空電子維護檢定", "B. 停機線航空器維護檢定", "C. 航空器機體型別及發動機型別維護檢定"],
+    answer: "A"
+  },
+  {
+    question: "地面機械員之檢定類別不含其子類別共分成幾類?",
+    options: ["A. 兩類", "B. 三類", "C. 四類"],
+    answer: "C"
+  },
+  {
+    question: "下列何種人員不需領取民航局簽發之航空人員檢定證：",
+    options: ["A. 航空器簽派員", "B. 客艙組員", "C. 飛航管制員"],
+    answer: "B"
+  },
+  {
+    question: "航空人員檢定證經撤銷或廢止者，多久時間內不得申請同類航空人員檢定?",
+    options: ["A. 一年", "B. 兩年", "C. 三年"],
+    answer: "A"
+  },
+  {
+    question: "地面機械員之檢定類別、其A1子類、B1.1子類係為：",
+    options: ["A. 裝置渦輪式發動機之直昇機航空機械維護檢定。", "B. 裝置渦輪式發動機之飛機航空機械維護檢定。", "C. 裝置活塞式發動機之直昇機航空機械維護檢定。"],
+    answer: "B"
+  },
+  {
+    question: "地面機械員之檢定類別、其A3子類、B1.3子類係為：",
+    options: ["A. 裝置渦輪式發動機之直昇機航空機械維護檢定。", "B. 裝置渦輪式發動機之飛機航空機械維護檢定。", "C. 裝置活塞式發動機之直昇機航空機械維護檢定。"],
+    answer: "A"
+  },
+  {
+    question: "地面機械員之檢定類別、其A4子類、B1.4子類係為：",
+    options: ["A. 裝置渦輪式發動機之直昇機航空機械維護檢定。", "B. 裝置渦輪式發動機之飛機航空機械維護檢定。", "C. 裝置活塞式發動機之直昇機航空機械維護檢定。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員A類檢定證，申請者資格條件下列何者為非：",
+    options: ["A. 需年滿十八歲", "B. 具所申請檢定類別之航空器實際維修兩年以上工作經驗。", "C. 持有飛航修護技術士證或大學、學院以上相關科系畢業，完成相關技術訓練，並具實際維修二年以上之工作經驗。"],
+    answer: "B"
+  },
+  {
+    question: "地面機械員B2類檢定證，申請者資格條件下列何者為非：",
+    options: ["A. 需年滿二十歲", "B. 具所申請檢定類別之航空器實際維修五年以上工作經驗。", "C. 持有飛航修護技術士證或大學、學院以上相關科系畢業，完成相關技術訓練，並具實際維修四年以上之工作經驗。"],
+    answer: "A"
+  },
+  {
+    question: "地面機械員檢定證之學識等級共分為：",
+    options: ["A. 兩級", "B. 三級", "C. 四級"],
+    answer: "B"
+  },
+  {
+    question: "地面機械員檢定證持有者，申請新增檢定類別或子類別，須提出符合相關之航空器實際維修經驗。 申請人若於民用航空人員地面機械員訓練機構修畢所申請檢定子類別相關訓練課程：",
+    options: ["A. 可抵減五分之一半實際維修經驗需求。", "B. 可抵減四分之一半實際維修經驗需求。", "C. 可抵減一半實際維修經驗需求。"],
+    answer: "C"
+  },
+  {
+    question: "申請地面機械員A類、B1類、B2類及C類檢定證者，學科檢定合格後始得實施術科檢定；術科檢定應於：",
+    options: ["A. 第一次學科檢定日起二年內完成。", "B. 完成學科檢定日起二年內完成。", "C. 第一次學科檢定日起三年內完成。"],
+    answer: "B"
+  },
+  {
+    question: "航空器型別訓練之三級訓練內容為：",
+    options: ["A. 過境訓練。", "B. 基地維護訓練。", "C. 停機線與基地維護訓練。"],
+    answer: "C"
+  },
+  {
+    question: "航空器型别訓練考驗及格成績為：",
+    options: ["A. 60%。", "B. 70%。", "C. 75%。"],
+    answer: "C"
+  },
+  {
+    question: "維修員經檢定取得地面機械員檢定證時，應：",
+    options: ["A. 繳回其維修員檢定證。", "B. 由本人報請民航局繳銷。", "C. 由航空公司報請民航局繳銷。"],
+    answer: "A"
+  },
+  {
+    question: "維修員因故不再履行其檢定權利時，其檢定證應：",
+    options: ["A. 繳回其維修員檢定證。", "B. 由本人報請民航局繳銷。", "C. 由航空公司或維修廠報請民航局繳銷。"],
+    answer: "C"
+  },
+  {
+    question: "下列何者非持有維修員檢定證之維修員權限?",
+    options: ["A. 執行航空器零組件維修或督導。", "B. 執行航空器改裝及恢復可用簽證。", "C. 執行航空器之適航簽證。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員各類檢定名稱之定義其A類指：",
+    options: ["A. 航空器機體型別及發動機型別維護檢定。", "B. 航空電子維護檢定。", "C. 停機線航空器維護檢定。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員各類檢定名稱之定義其B1類指：",
+    options: ["A. 航空電子維護檢定。", "B. 停機線航空器維護檢定。", "C. 航空器機體型別及發動機型別維護檢定。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員各類檢定名稱之定義其B2類指：",
+    options: ["A. 維修廠完成航空器維護簽證檢定。", "B. 航空器機體型別及發動機型別維護檢定。", "C. 航空電子維護檢定。"],
+    answer: "C"
+  },
+  {
+    question: "地面機械員各類檢定名稱之定義其C類指：",
+    options: ["A. 停機線航空器維護檢定。", "B. 航空電子維護檢定。", "C. 維修廠完成航空器維護簽證檢定。"],
+    answer: "C"
+  },
+  {
+    question: "各類地面機械員行使其檢定證執行業務之權限，需符合：",
+    options: ["A. 過去一年內具有相關型別航空器六個月實際維修經驗。", "B. 過去兩年內具有相關型別航空器六個月實際維修經驗。", "C. 過去三年內具有相關型別航空器六個月實際維修經驗。"],
+    answer: "B"
+  },
+  {
+    question: "領有檢定證、體格檢查及格證，在航空器上擔任機械操作、管理及維護工作之人員是為…",
+    options: ["A. 維修員", "B. 飛航機械員", "C. 地面機械員"],
+    answer: "B"
+  },
+  {
+    question: "領有檢定證，在地面上擔任航空器機體、發動機及通信電子維護工作之人員是為…",
+    options: ["A. 地面機械員", "B. 航空器簽派員", "C. 維修員"],
+    answer: "A"
+  },
+  {
+    question: "領有檢定證，受僱於航空公司或維修廠從事航空器或其零組件之維修、改裝或檢驗工作之人員是為…",
+    options: ["A. 飛航機械員", "B. 地面機械員", "C. 維修員"],
+    answer: "C"
+  },
+  {
+    question: "領有檢定證，在地面上擔任航情守望、提供飛航資訊及協助機長執行航空器之飛航起始、繼續及終止工作之人員是為…",
+    options: ["A. 維修員", "B. 航空器簽派員", "C. 飛航管制員"],
+    answer: "B"
+  },
+  {
+    question: "指領有檢定證、體格檢查及格證，在地面上負責指揮、支配航空器，並協助駕駛員達成航空器在飛航中一切活動及安全之人員是為…",
+    options: ["A. 飛航管制員", "B. 航空器簽派員", "C. 維修員"],
+    answer: "A"
+  },
+  {
+    question: "交通部民用航空局核發航空人員,用以證明持有人具有從事該項專業技能之證件謂:",
+    options: ["A. 航空人員識別證", "B. 檢定證", "C. 執業證書"],
+    answer: "B"
+  },
+  {
+    question: "於未經民航局核准或認可之航空人員訓練機構擔任飛航教學之航空器駕駛員稱為…",
+    options: ["A. 飛航教師", "B. 教師駕駛員", "C. 飛航駕駛員"],
+    answer: "B"
+  },
+  {
+    question: "越野飛航乃指航空器自其所作之起飛點與降落點之間距離在:",
+    options: ["A. 三十公里以上", "B. 五十公里以上", "C. 一百公里以上"],
+    answer: "A"
+  },
+  {
+    question: "維修員於下列何情況下不須繳回其維修員檢定證?",
+    options: ["A. 維修員因故不再履行其檢定權利時", "B. 維修員經檢定取得地面機械員檢定證時", "C. 特業維修類別之維修員經檢定取得地面機械員檢定證時"],
+    answer: "C"
+  },
+  {
+    question: "航空人員檢定給證管理規則為",
+    options: ["A. 05-01A", "B. 05-02A", "C. 06-01A"],
+    answer: "A"
+  },
+  {
+    question: "誰可執行維修廠飛機之恢復可用簽證?",
+    options: ["A. 持地面機械員A類檢定證者", "B. 持地面機械員B1類檢定證者", "C. 持地面機械員B2類檢定證者"],
+    answer: "B"
+  },
+  {
+    question: "完成民航局核准之民用航空人員地面機械員訓練機構A類檢定訓練課程，欲申請B1.2子類地面機械員檢定證者，最少須具下列哪些資格：                  (1)年滿十八歲                              (2)航空器實際維修一年以上工作經驗          (3)航空器實際維修二年以上之工作經驗         (4)航空器實際維修三年以上工作經驗            (5)完成航空器使用人或維修廠所訂定之相關技術訓練",
+    options: ["A. 僅(1)", "B. (1)及(2)", "C. (1)(2)及(5)"],
+    answer: "B"
+  },
+  {
+    question: "下列地面機械員之檢定類別不需加註型別檢定項目",
+    options: ["A. 地面機械員A類檢定證", "B. 地面機械員B1類檢定證", "C. 地面機械員B2類檢定證"],
+    answer: "A"
+  },
+  {
+    question: "航空人員檢定給證管理規則由…",
+    options: ["A. … 民航局訂立 。", "B. … 交通部訂立 。", "C. … 行政院訂立 。"],
+    answer: "B"
+  },
+  {
+    question: "航空人員學、術科檢定業務，得委託機關、團體或個人辦理之；受委託者之資格、責任、監督及其他應遵行事項之辦法，由…",
+    options: ["A. … 民航局訂立 。", "B. … 交通部訂立 。", "C. … 行政院訂立 。"],
+    answer: "A"
+  },
+  {
+    question: "地面機械員檢定證申請人若學術科檢定成績有不及格之情形者，就其不及格部分得於收到民航局成績通知多久後申請複檢。",
+    options: ["A. 三十日後", "B. 六十日後", "C. 九十日後"],
+    answer: "C"
+  },
+  {
+    question: "完成民航局核准之民用航空人員地面機械員訓練機構A類檢定訓練課程，欲申請A類地面機械員檢定證者，最少須具下列哪些資格：                  (1)年滿十八歲                              (2)航空器實際維修一年以上工作經驗          (3)航空器實際維修二年以上之工作經驗         (4)航空器實際維修三年以上工作經驗            (5)完成航空器使用人或維修廠所訂定之相關技術訓練",
+    options: ["A. (1)及(4)", "B. (1)及(2)", "C. (1)(3)及(5)"],
+    answer: "B"
+  },
+  {
+    question: "持有各類地面機械員檢定證者須有下列何經歷方可執行簽證工作?",
+    options: ["A. 過去一年內具有相關型別航空器六個月實際維修經驗", "B. 過去兩年內具有相關型別航空器六個月實際維修經驗", "C. 過去三年內具有相關型別航空器六個月實際維修經驗"],
+    answer: "B"
+  },
+  {
+    question: "申請小型航空器之廠家群組型别檢定，檢定證申請人須最少持有同一製造廠家所製造群組型别中多少款航空器型别檢定?",
+    options: ["A. 任一款", "B. 任二款", "C. 任三款"],
+    answer: "B"
+  },
+  {
+    question: "申請小型航空器之相近群組型别檢定，檢定證申請人須最少持有不同製造廠家所製造群組型别中多少款航空器型别檢定?",
+    options: ["A. 任一款", "B. 任二款", "C. 任三款"],
+    answer: "C"
+  },
+  {
+    question: "B2類或C類檢定證，小型航空器群組型别檢定，其群組型别之組成共有 …",
+    options: ["A. 二種群組型别", "B. 三種群組型别", "C. 五種群組型别"],
+    answer: "B"
+  },
+  {
+    question: "設立於中華民國境內之維修廠檢定證書及營運規範之有效期間為：",
+    options: ["A. 一年", "B. 兩年", "C. 三年"],
+    answer: "C"
+  },
+  {
+    question: "設立於中華民國境外之維修廠，其檢定證書及營運規範之有效期間為：",
+    options: ["A. 一年", "B. 兩年", "C. 三年"],
+    answer: "A"
+  },
+  {
+    question: "維修廠檢定證書持有人應於何時填具申請書，向民航局提出換證申請：",
+    options: ["A. 證書有效期間屆滿三十日前", "B. 證書有效期間屆滿六十日前", "C. 證書有效期間屆滿九十日前"],
+    answer: "B"
+  },
+  {
+    question: "維修廠檢定證書有效期間屆滿、撤銷或廢止時，檢定證書持有人應於幾內向民航局繳銷?",
+    options: ["A. 三十", "B. 四十五", "C. 六十"],
+    answer: "A"
+  },
+  {
+    question: "具管控權之母廠得與其衛星維修廠共用人員及裝備。下列條件何者為非?",
+    options: ["A. 對每一衛星維修廠均應指派檢驗人員。", "B. 於決定航空產品之適航或恢復可用時，檢驗人員應在場。", "C. 衛星維修廠得座落於具管控權之母廠所在國之外"],
+    answer: "C"
+  },
+  {
+    question: "國內維修廠執行檢定證書及營運規範權限下航空產品與其各項裝備及零組件恢復可用簽證人員，至少應具有實務維修經驗：",
+    options: ["A. 二十四個月", "B. 十八個月", "C. 十二個月"],
+    answer: "A"
+  },
+  {
+    question: "維修廠下列人員何者不須造冊予民航局備查?",
+    options: ["A. 地面機械員", "B. 管理、維修督導人員", "C. 檢驗人員"],
+    answer: "A"
+  },
+  {
+    question: "維修廠授權簽放人員增補、離職、調職或變更工作範圍時，應在多久內依規定修訂名冊?",
+    options: ["A. 三個工作日", "B. 五個工作日", "C. 十五個工作日"],
+    answer: "B"
+  },
+  {
+    question: "維修廠應將每一工作人員依要求，完成所需訓練，該訓練紀錄應至少保存：",
+    options: ["A. 一年", "B. 二年", "C. 三年"],
+    answer: "B"
+  },
+  {
+    question: "維修廠應依規定保存維修紀錄至少保存：",
+    options: ["A. 一年", "B. 二年", "C. 三年"],
+    answer: "B"
+  },
+  {
+    question: "維修廠營業不得違反檢定證書所核可之：",
+    options: ["A. 檢定類別", "B. 營運規範", "C. 以上皆是"],
+    answer: "C"
+  },
+  {
+    question: "維修廠應提供執行維修或預防性維修之維修簽放文件予航空產品所有人或使用人至少保存：",
+    options: ["A. 一年", "B. 二年", "C. 三年"],
+    answer: "B"
+  },
+  {
+    question: "飛航安全調查委員會隸屬於：",
+    options: ["A. 行政院", "B. 航政司", "C. 內政部"],
+    answer: "A"
+  },
+  {
+    question: "維修廠於執行航空產品之維修或預防性維修工作時，應依：",
+    options: ["A. 維修廠之持續適航維護計畫手冊為之。", "B. 飛機製造商之持續適航維護計畫手冊為之。", "C. 航空器所有人或使用人之持續適航維護計畫手冊為之。"],
+    answer: "C"
+  },
+  {
+    question: "維修廠於執行停機線維修時，下列規定何者不符：",
+    options: ["A. 應依維修廠之航空器維護能力手冊及維護計畫執行維修。", "B. 應有必要之裝備及技術文件。", "C. 營運規範應具有執行停機線維修之授權。"],
+    answer: "A"
+  },
+  {
+    question: "下列何者為非，維修廠手冊應包括維修廠組織圖並載明每一管理人員之：",
+    options: ["A. 職稱", "B. 工作經歷", "C. 權限"],
+    answer: "B"
+  },
+  {
+    question: "維修廠應符合下列何條件方可至維修廠廠房外之其他地方，執行維修?",
+    options: ["A. 該工作有重複性需求且其維修廠手冊內容包括在維修廠廠房以外之地方，執行維修作業程序者。", "B. 維修廠手冊內容包括該工作在維修廠廠房以外之地方，執行維修作業程序者。", "C. 該工作為單一性需求且其維修廠手冊內容包括在維修廠廠房以外之地方，執行維修作業程序者。"],
+    answer: "A"
+  },
+  {
+    question: "航空器適航檢定維修管理規則為",
+    options: ["A. 05-01A", "B. 05-02A", "C. 06-01A"],
+    answer: "C"
+  },
+  {
+    question: "維修廠設立檢定管理規則由…",
+    options: ["A. … 民航局訂立 。", "B. … 交通部訂立 。", "C. … 行政院訂立 。"],
+    answer: "B"
+  },
+  {
+    question: "航空器適航檢定維修管理規則由…",
+    options: ["A. … 民航局訂立 。", "B. … 交通部訂立 。", "C. … 行政院訂立 。"],
+    answer: "B"
+  },
+  {
+    question: "欲設立維修航空產品之維修廠，應向誰提供申請?",
+    options: ["A. 民航局", "B. 交通部", "C. 行政院"],
+    answer: "A"
+  },
+  {
+    question: "維修B787之維修廠需具備機體類別 …",
+    options: ["A. … 一級", "B. … 二級", "C. … 三級"],
+    answer: "B"
+  },
+  {
+    question: "維修渦輪式發動機之維修廠需具備發動機類別 …",
+    options: ["A. … 一級", "B. … 二級", "C. … 三級"],
+    answer: "C"
+  },
+  {
+    question: "國內維修廠從事督導飛機維修工作之人員，應持有:\n(1) 地面機械員A類檢定證\n(2) 地面機械員B1類檢定證\n(3) 地面機械員B2類檢定證\n(4) 地面機械員C類檢定證",
+    options: ["A. (1) 或 (2)", "B. (2) 或 (3)", "C. (2) 或 (4)"],
+    answer: "B"
+  },
+  {
+    question: "維修廠檢驗人員名冊變更時，應在…",
+    options: ["A. 3個工作日內修訂。", "B. 5個工作日內修訂。", "C. 15個工作日內修訂。"],
+    answer: "B"
+  },
+  {
+    question: "維修廠應人員之訓練紀錄應至少保存…",
+    options: ["A. … 1年。", "B. … 2年。", "C. … 5年。"],
+    answer: "B"
+  },
+  {
+    question: "執行航空器之維修或預防性維修需依…",
+    options: ["A. … 05.01A執行。", "B. … 05.02A執行。", "C. … 06.01A執行。"],
+    answer: "C"
+  },
+  {
+    question: "航空器適航檢定維修管理規則為",
+    options: ["A. 05-01A", "B. 05-02A", "C. 06-01A"],
+    answer: "C"
+  },
+  {
+    question: "維修廠設立檢定管理規則由…",
+    options: ["A. … 民航局訂立 。", "B. … 交通部訂立 。", "C. … 行政院訂立 。"],
+    answer: "B"
+  },
+  {
+    question: "航空器適航檢定維修管理規則由…",
+    options: ["A. … 民航局訂立 。", "B. … 交通部訂立 。", "C. … 行政院訂立 。"],
+    answer: "B"
+  },
+  {
+    question: "欲設立維修航空產品之維修廠，應向誰提供申請?",
+    options: ["A. 民航局", "B. 交通部", "C. 行政院"],
+    answer: "A"
+  },
+  {
+    question: "維修B787之維修廠需具備機體檢定類別 …",
+    options: ["A. … 一級", "B. … 二級", "C. … 三級"],
+    answer: "B"
+  },
+  {
+    question: "維修渦輪式發動機之維修廠需具備發動機類別 …",
+    options: ["A. … 一級", "B. … 二級", "C. … 三級"],
+    answer: "C"
+  },
+  {
+    question: "國內維修廠從事督導飛機維修工作之人員，應持有:\n(1) 地面機械員A類檢定證\n(2) 地面機械員B1類檢定證\n(3) 地面機械員B2類檢定證\n(4) 地面機械員C類檢定證",
+    options: ["A. (1) 或 (2)", "B. (2) 或 (3)", "C. (2) 或 (4)"],
+    answer: "B"
+  },
+  {
+    question: "維修廠檢驗人員名冊變更時，應在…",
+    options: ["A. 3個工作日內修訂。", "B. 5個工作日內修訂。", "C. 15個工作日內修訂。"],
+    answer: "B"
+  },
+  {
+    question: "維修廠應人員之訓練紀錄應至少保存…",
+    options: ["A. … 1年。", "B. … 2年。", "C. … 5年。"],
+    answer: "B"
+  },
+  {
+    question: "執行航空器之維修或預防性維修需依…",
+    options: ["A. … 05.01A執行。", "B. … 05.02A執行。", "C. … 06.01A執行。"],
+    answer: "C"
+  },
+  {
+    question: "維修渦輪式發動機之維修廠需具備發動機類別 …",
+    options: ["A. … 一級", "B. … 二級", "C. … 三級"],
+    answer: "C"
+  },
+  {
+    question: "設立於中華民國境內之維修廠檢定證書及營運規範之有效期間為：",
+    options: ["A. 一年", "B. 兩年", "C. 三年"],
+    answer: "C"
+  },
+  {
+    question: "維修廠檢定證書持有人應於何時填具申請書，向民航局提出換證申請：",
+    options: ["A. 證書有效期間屆滿三十日前", "B. 證書有效期間屆滿六十日前", "C. 證書有效期間屆滿九十日前"],
+    answer: "B"
+  },
+  {
+    question: "維修廠檢定證書有效期間屆滿、撤銷或廢止時，檢定證書持有人應於幾內向民航局繳銷?",
+    options: ["A. 三十", "B. 四十五", "C. 六十"],
+    answer: "A"
+  },
+  {
+    question: "具管控權之母廠得與其衛星維修廠共用人員及裝備。下列條件何者為非?",
+    options: ["A. 對每一衛星維修廠均應指派檢驗人員。", "B. 於決定航空產品之適航或恢復可用時，檢驗人員應在場。", "C. 衛星維修廠得座落於具管控權之母廠所在國之外"],
+    answer: "C"
+  },
+  {
+    question: "設立於國外維修廠執行檢定證書及營運規範權限下航空產品與其各項裝備及零組件恢復可用簽證人員，至少應具有實務維修經驗：",
+    options: ["A. 二十四個月", "B. 十八個月", "C. 十二個月"],
+    answer: "A"
+  },
+  {
+    question: "維修廠下列人員何者不須造冊予民航局備查?",
+    options: ["A. 地面機械員", "B. 管理、維修督導人員", "C. 檢驗人員"],
+    answer: "A"
+  },
+  {
+    question: "維修廠授權簽放人員增補、離職、調職或變更工作範圍時，應在多久內依規定修訂名冊?",
+    options: ["A. 三個工作日", "B. 五個工作日", "C. 十五個工作日"],
+    answer: "B"
+  },
+  {
+    question: "維修廠應將每一工作人員依要求，完成所需訓練，該訓練紀錄應至少保存：",
+    options: ["A. 一年", "B. 二年", "C. 三年"],
+    answer: "B"
+  },
+  {
+    question: "維修廠應依規定保存維修紀錄至少保存：",
+    options: ["A. 一年", "B. 二年", "C. 三年"],
+    answer: "B"
+  },
+  {
+    question: "維修廠營業不得違反檢定證書所核可之：",
+    options: ["A. 檢定類別", "B. 營運規範", "C. 以上皆是"],
+    answer: "C"
+  },
+  {
+    question: "航空產品所有人或使用人對於維修廠執行維修或預防性維修之維修簽放文件至少需保存：",
+    options: ["A. 一年", "B. 二年", "C. 三年"],
+    answer: "B"
+  },
+  {
+    question: "飛航安全調查委員會隸屬於：",
+    options: ["A. 行政院", "B. 航政司", "C. 內政部"],
+    answer: "A"
+  },
+  {
+    question: "維修廠於執行航空產品之維修或預防性維修工作時，應依：",
+    options: ["A. 維修廠之持續適航維護計畫手冊為之。", "B. 飛機製造商之持續適航維護計畫手冊為之。", "C. 航空器所有人或使用人之持續適航維護計畫手冊為之。"],
+    answer: "C"
+  },
+  {
+    question: "維修廠於執行停機線維修時，下列規定何者不符：",
+    options: ["A. 應依維修廠之航空器維護能力手冊及維護計畫執行維修。", "B. 應有必要之裝備及技術文件。", "C. 營運規範應具有執行停機線維修之授權。"],
+    answer: "A"
+  },
+  {
+    question: "下列何者為非，維修廠手冊應包括維修廠組織圖並載明每一管理人員之：",
+    options: ["A. 職稱", "B. 工作經歷", "C. 權限"],
+    answer: "B"
+  },
+  {
+    question: "維修廠應符合下列何條件方可至維修廠廠房外之其他地方，執行維修?",
+    options: ["A. 該工作有重複性需求且其維修廠手冊內容包括在維修廠廠房以外之地方，執行維修作業程序者。", "B. 維修廠手冊內容包括該工作在維修廠廠房以外之地方，執行維修作業程序者。", "C. 該工作為單一性需求且其維修廠手冊內容包括在維修廠廠房以外之地方，執行維修作業程序者。"],
+    answer: "A"
+  },
+  {
+    question: "何謂停機線維修?",
+    options: ["A. 指航空器停放於航站時日常檢查產生之非定期維修", "B. 指不需要特殊訓練、裝備或設施之日常保養或檢查，或飛航中及日常檢查產生之非定期維修", "C. 指執行維修或預防性維修過程中，所進行之步驟，其執行結果可使航空產品與其各項裝備及零組件恢復可用"],
+    answer: "B"
+  },
+  {
+    question: "航空器維護後簽放應由:",
+    options: ["A. 任一具有民航局檢定合格地面機械員證書者簽證", "B. 直接負責維護工作且具有地面機械員檢定證書者簽證", "C. 由維護工作主管人員簽證"],
+    answer: "B"
+  },
+  {
+    question: "申請維修廠檢定，檢附文件內之維修廠組織系統表，與下列何者之姓名及職稱名單                 (1)授權簽放人員                              (2)管理人員                                            (3)督導人員                                    (4)地面機械員",
+    options: ["A. 僅(1)", "B. (1)及(3)", "C. (2)及(3)"],
+    answer: "C"
+  },
+  {
+    question: "申請維修廠檢定，須檢附維修廠組織系統表與管理及督導人員之…                                     (1)姓名                                       (2)授權號碼                                     (3)職稱                                      (4)地面機械員檢定證號",
+    options: ["A. (1)及(3)", "B. (1)(2)及(4)", "C. (1)(2)及(3)"],
+    answer: "A"
+  },
+  {
+    question: "設立於國外之維修廠，其檢定證書及營運規範之有效期間為 …",
+    options: ["A. 一年", "B. 二年", "C. 三年"],
+    answer: "A"
+  },
+  {
+    question: "維修廠檢定類別之機體類別，下列何者為混合結構之航空器                                    (1)一級                                         (2)二級                                        (3)三級                                     (4)四級",
+    options: ["A. 僅(1)", "B. (1)及(2)", "C. (1)及(3)"],
+    answer: "B"
+  },
+  {
+    question: "各種使用電子管、電晶體運作之儀表或類似設備，包括電容式容量表、系統放大器及發動機分析儀係為:",
+    options: ["A. 電子式儀器", "B. 電器式儀器", "C. 機械式儀器"],
+    answer: "A"
+  },
+  {
+    question: "維修廠檢定類別之機體類別，下列何者其最大起飛總重在五千七百公斤或一萬二千五百磅以下                 (1)一級                                        (2)二級                                          (3)三級                                            (4)四級",
+    options: ["A. (1)及(2)", "B. (1)及(3)", "C. (2)及(4)"],
+    answer: "B"
+  },
+  {
+    question: "維修廠檢定類別之發動機類別，下列何者為渦輪式發動機                                          (1)一級                                        (2)二級                                          (3)三級                                            (4)四級",
+    options: ["A. 僅(1)", "B. 僅(2)", "C. 僅(3)"],
+    answer: "C"
+  },
+  {
+    question: "維修廠檢定類別之螺旋槳類別，下列何者為固定螺距式螺旋槳                                    (1)一級                                        (2)二級                                          (3)三級                                            (4)四級",
+    options: ["A. 僅(1)", "B. 僅(2)", "C. 僅(3)"],
+    answer: "A"
+  },
+  {
+    question: "維修廠檢定類別之無線電設備類別，下列何者為雷達設備",
+    options: ["A. 一級", "B. 二級", "C. 三級"],
+    answer: "C"
+  },
+  {
+    question: "下列何者非屬維修廠檢定類別之特業維修類別",
+    options: ["A. 緊急及救生裝備", "B. 起落架組合件", "C. 非破壞性檢查試驗及處理"],
+    answer: "B"
+  },
+  {
+    question: "國內維修廠督導人員，應持有 …               (1)地面機械員檢定證                                (2)航空乙級檢定證                              (3)維修員檢定證                              (4)航空器簽派員檢定證",
+    options: ["A. 僅(1)", "B. (1)及(2)", "C. (1)及(3)"],
+    answer: "C"
+  },
+  {
+    question: "下列何項為取得維修員檢定證之必要條件?",
+    options: ["A. 持有飛機修護技術士證照", "B. 維修廠推薦", "C. 具有英文瞭解、閱讀及書寫能力"],
+    answer: "B"
+  },
+  {
+    question: "維修廠授權核准航空產品維修後恢復可用之簽放人員若有增補、離職、調職或變更工作範圍時，應",
+    options: ["A. 在三個工作日內依規定修訂名冊", "B. 在五個工作日內依規定修訂名冊", "C. 在一週內依規定修訂名冊"],
+    answer: "B"
+  },
+  {
+    question: "維修廠人員訓練計畫應包括維修資源管理訓練，以減少_________ 造成之事故",
+    options: ["A. 人員過勞", "B. 人力調配", "C. 人為因素"],
+    answer: "C"
+  },
+  {
+    question: "維修廠為了提升工作人員間及與飛航組員之協調合作，減少人為因素造成之事故，應提供人員何種訓練?",
+    options: ["A. 維修資源管理訓練", "B. 語言能力訓練", "C. 航空用語訓練"],
+    answer: "A"
+  },
+  {
+    question: "維修廠在檢定證書及營運規範權限下，依據航空器 _______維修管理規則，執行維修或預防性維修航空產品與其各項裝備及零組件",
+    options: ["A. 型別檢定", "B. 維修檢定", "C. 適航檢定"],
+    answer: "C"
+  },
+  {
+    question: "維修廠得於執行航空產品與其各項裝備及零組件維修或預防性維修後，核准其…",
+    options: ["A. 恢復可用。", "B. 恢復適航。", "C. 以上皆是。"],
+    answer: "A"
+  },
+  {
+    question: "維修廠於何條件下可至維修廠廠房外之其他地方，執行維修",
+    options: ["A. 該工作係經民航局認定因其特殊情況下之需要執行者", "B. 該工作有重複性需求且其維修廠手冊內容包括在維修廠廠房以外之地方，執行維修作業程序者", "C. 以上皆是。"],
+    answer: "C"
+  },
+  {
+    question: "維修廠應保存足以證明其符合航空器適航檢定維修管理規則規定之紀錄。其紀錄應以",
+    options: ["A. 中文或英文填寫", "B. 中文填寫", "C. 英文填寫"],
+    answer: "A"
+  },
+  {
+    question: "維修廠設立檢定管理規則為",
+    options: ["A. 06-01A", "B. 06-02A", "C. 06-03A"],
+    answer: "B"
+  },
+  {
+    question: "維修廠設立檢定管理規則由…",
+    options: ["A. … 民航局訂立 。", "B. … 交通部訂立 。", "C. … 行政院訂立 。"],
+    answer: "B"
+  },
+  {
+    question: "欲設立維修航空產品之維修廠，應向誰提供申請?",
+    options: ["A. 民航局", "B. 交通部", "C. 行政院"],
+    answer: "A"
+  },
+  {
+    question: "維修渦輪式發動機之維修廠需具備發動機類別 …",
+    options: ["A. … 一級", "B. … 二級", "C. … 三級"],
+    answer: "C"
+  },
+  {
+    question: "誰可執行停機線飛機之恢復可用簽證?",
+    options: ["A. 持地面機械員A類檢定證者", "B. 持地面機械員B1.1類檢定證者", "C. 持地面機械員B1.3類檢定證者"],
+    answer: "B"
+  },
+  {
+    question: "國內維修廠從事督導飛機維修工作之人員，應持有:\n(1) 地面機械員A類檢定證\n(2) 地面機械員B1類檢定證\n(3) 地面機械員B2類檢定證\n(4) 地面機械員C類檢定證",
+    options: ["A. (1) 或 (2)", "B. (2) 或 (3)", "C. (2) 或 (4)"],
+    answer: "B"
+  },
+  {
+    question: "維修廠檢驗人員名冊變更時，應在…",
+    options: ["A. 3個工作日內修訂。", "B. 5個工作日內修訂。", "C. 15個工作日內修訂。"],
+    answer: "B"
+  },
+  {
+    question: "執行航空器之維修或預防性維修需依…",
+    options: ["A. … 05-01A執行。", "B. … 05-02A執行。", "C. … 06-01A執行。"],
+    answer: "C"
+  },
+  {
+    question: "維修渦輪式發動機之維修廠需具備發動機類別 …",
+    options: ["A. … 一級", "B. … 二級", "C. … 三級"],
+    answer: "C"
+  },
+  {
+    question: "維修B787之維修廠需具備機體檢定類別 …",
+    options: ["A. … 一級", "B. … 二級", "C. … 三級"],
+    answer: "B"
+  },
+  {
+    question: "維修A380之維修廠需具備機體檢定類別 …",
+    options: ["A. … 一級", "B. … 二級", "C. … 三級"],
+    answer: "B"
+  },
+  {
+    question: "維修活塞式發動機，其馬力超過四百匹者之維修廠需具備發動機類別 …",
+    options: ["A. … 一級", "B. … 二級", "C. … 三級"],
+    answer: "B"
+  },
+  {
+    question: "國內維修廠從事督導飛機維修工作之人員，應持有:\n(1) 地面機械員A類檢定證\n(2) 地面機械員B1類檢定證\n(3) 地面機械員B2類檢定證\n(4) 地面機械員C類檢定證",
+    options: ["A. (1) 或 (2)", "B. (2) 或 (3)", "C. (2) 或 (4)"],
+    answer: "B"
+  },
+  {
+    question: "維修廠檢定證書所核可之檢定類別共分幾類?",
+    options: ["A. 六類", "B. 七類", "C. 八類"],
+    answer: "B"
+  },
+  {
+    question: "維修廠檢定類別之機體類別，下列何者其最大起飛總重超過五千七百公斤或一萬二千五百磅                 (1)一級                                        (2)二級                                          (3)三級                                            (4)四級",
+    options: ["A. (1)及(2)", "B. (1)及(3)", "C. (2)及(4)"],
+    answer: "C"
+  },
+  {
+    question: "維修廠檢定類別之無線電設備類別，下列何者為導航設備",
+    options: ["A. 一級", "B. 二級", "C. 三級"],
+    answer: "B"
+  },
+  {
+    question: "維修廠檢定類別之無線電設備類別共有幾級",
+    options: ["A. 一級", "B. 二級", "C. 三級"],
+    answer: "C"
+  },
+  {
+    question: "維修陀螺式儀器，維修廠需具備儀器類別檢定 …",
+    options: ["A. … 一級", "B. … 二級", "C. … 三級"],
+    answer: "C"
+  },
+  {
+    question: "各種自動同步與電子式儀表及系統，包括遠距指示器、汽缸頭溫度表或類似之電器式儀表係為:",
+    options: ["A. 電子式儀器", "B. 電器式儀器", "C. 機械式儀器"],
+    answer: "B"
+  },
+  {
+    question: "維修廠檢定類別之機體類別，下列何者為全金屬結構之航空器                                   (1)一級                                       (2)二級                                      (3)三級                                       (4)四級",
+    options: ["A. 僅(1)", "B. (2)及(4)", "C. (3)及(4)"],
+    answer: "C"
+  },
+  {
+    question: "下列何者非維修廠檢定類別之無線電設備類別:",
+    options: ["A. 通訊設備", "B. 導航設備", "C. 電子設備"],
+    answer: "C"
+  },
+  {
+    question: "下列何者非維修廠檢定類別之附件類別:",
+    options: ["A. 機械式附件", "B. 電機式附件", "C. 電器式附件"],
+    answer: "B"
+  },
+  {
+    question: "飛機運輸業務其包機之收費基準下列何者為非?",
+    options: ["A. 時間", "B. 里程", "C. 載客數"],
+    answer: "C"
+  },
+  {
+    question: "申請經營國內航線定期或不定期航空運輸業務應具備資格下列何者為非",
+    options: ["A. 公司設立五年以上", "B. 公司之資本總額或股份總數逾百分之五十為中華民國之國民、法人所有", "C. 單一外國人持有之股份總數不得逾百分之三十"],
+    answer: "B"
+  },
+  {
+    question: "經營國際運輸或國際貿易業務五年以上，每年營業收入達新臺幣六十億元以上者，得申請經營",
+    options: ["A. 國際航線定期或不定期貨運業務", "B. 國內航線定期或不定期貨運業務", "C. 國內航線定期或不定期航空運輸業務"],
+    answer: "A"
+  },
+  {
+    question: "於中華民國九十八年十二月三十日修正發布前經民航局核發民用航空運輸業許可證者，應在修正發布日起多少時間內，向民航局申請換發民用航空運輸業許可證",
+    options: ["A. 一個月內", "B. 三個月內", "C. 六個月內"],
+    answer: "C"
+  },
+  {
+    question: "民用航空運輸業之公司名稱、組織或代表人變更，應依法向有關機關辦妥登記後多少時間內報請民航局核轉交通部備查",
+    options: ["A. 一星期", "B. 十五日", "C. 一個月內"],
+    answer: "B"
+  },
+  {
+    question: "民用航空運輸業之公司英文名稱或代碼變更時，應於變更後多少時間內報請民航局核轉交通部備查",
+    options: ["A. 一星期", "B. 十五日", "C. 一個月內"],
+    answer: "B"
+  },
+  {
+    question: "民用航空運輸業之國內定期航線其航線證書之有效期間為",
+    options: ["A. 三年", "B. 六年", "C. 十年"],
+    answer: "C"
+  },
+  {
+    question: "民用航空運輸業國際定期飛航班機時間表，有變更時，應於何時報請民航局核准",
+    options: ["A. 生效前五個工作日", "B. 生效前五日", "C. 生效前十個工作日"],
+    answer: "A"
+  },
+  {
+    question: "普通航空業經營商務專機業務，應以座位數幾人以下之飛機或直昇機提供單一客戶專屬客運服務",
+    options: ["A. 九", "B. 十二", "C. 十九"],
+    answer: "C"
+  },
+  {
+    question: "航空器飛航時，應具備之文書，下列何者為非",
+    options: ["A. 最近一次維修紀錄", "B. 航空器適航證書", "C. 載客時乘客名單"],
+    answer: "A"
+  },
+  {
+    question: "下列何者應於航空器飛航前，確認航空器已具備之所有文書",
+    options: ["A. 機務代表", "B. 航空器所有人", "C. 機長"],
+    answer: "C"
+  },
+  {
+    question: "危險物品之分類與識別、空運之限制、失事與意外事件之通報及其他應遵行事項之辦法，由何部門定之",
+    options: ["A. 民航局", "B. 交通部", "C. 飛安委員會"],
+    answer: "B"
+  },
+  {
+    question: "槍砲彈藥刀械管制條例所定槍砲，不得攜帶進入航空器。但因特殊任務需要，可經何單位核准，不在此限。",
+    options: ["A. 民航局", "B. 航空警察局", "C. 交通部"],
+    answer: "B"
+  },
+  {
+    question: "乘客於運送中或於運送完成後，與航空器運送人發生糾紛者，下列何者應協助調處之",
+    options: ["A. 航空公司", "B. 航空警察局", "C. 民航局"],
+    answer: "C"
+  },
+  {
+    question: "航空器在飛航中，下列何者為負責人，並得為一切緊急處置",
+    options: ["A. 機長", "B. 空中警察", "C. 航空公司之特勤人員"],
+    answer: "A"
+  },
+  {
+    question: "民用航空運輸業其許可證或航線證書 ...",
+    options: ["A. 僅許可證得以轉移", "B. 僅航線證書得以轉移", "C. 皆不得轉移"],
+    answer: "C"
+  },
+  {
+    question: "民用航空運輸業之公司所在地變更或設立分公司，應依法向有關機關辦妥變更登記後多少時間內，報請民航局備查",
+    options: ["A. 一星期", "B. 十五日", "C. 一個月內"],
+    answer: "B"
+  },
+  {
+    question: "民用航空運輸業或以航空器供民用航空運輸業營運者，其購買、附條件買賣或租用之外籍民用航空器，貨機超過十四年者，應另檢送",
+    options: ["A. 適航評估報告", "B. 營運計畫及營運收支預估", "C. 維護計劃"],
+    answer: "A"
+  },
+  {
+    question: "民用航空運輸業暫停國內定期航線前，應報請民航局核轉交通部核准，始得暫停且以幾次為限",
+    options: ["A. 一次", "B. 兩次", "C. 三次"],
+    answer: "A"
+  },
+  {
+    question: "民用航空運輸業其航線證書屆期應於何時間內檢附申請書向民航局申請?",
+    options: ["A. 一個月前", "B. 三個月前", "C. 一個月後"],
+    answer: "A"
+  },
+  {
+    question: "民用航空運輸業申請國內包機，應於預計起飛前何時報請民航局核准",
+    options: ["A. 十個工作日", "B. 十五個工作日", "C. 二十個工作日"],
+    answer: "A"
+  },
+  {
+    question: "航空器申請適航證書，應：",
+    options: ["A. 先領有登記證書", "B. 勿須領有登記證書", "C. 因係租用,故勿須領有登記證書"],
+    answer: "A"
+  },
+  {
+    question: "民用航空運輸業國內定期航線得於暫停期間內復航，並於復航前報請民航局備查，其暫停期於暫停之日起不得超過",
+    options: ["A. 六個月", "B. 一年", "C. 十八個月"],
+    answer: "B"
+  },
+  {
+    question: "民用航空運輸業申請國內定期飛航其班機時間表，應於何時報請民航局核准",
+    options: ["A. 生效十日前", "B. 生效十個工作日前", "C. 生效二十日前"],
+    answer: "C"
+  },
+  {
+    question: "普通航空業對其運輸中使用之乘客機票票根或其電子檔，應自起飛之日起至少保存多久，以備民航局查核",
+    options: ["A. 六個月", "B. 一年", "C. 二年"],
+    answer: "C"
+  },
+  {
+    question: "登記證書或適航證書失效時，由民航局公告作廢。持有人應自失效之日起幾日內，向民航局繳還原證書。",
+    options: ["A. 十日", "B. 二十日", "C. 三十日"],
+    answer: "B"
+  },
+  {
+    question: "航空器飛航時，應具備之文書，下列何者為非",
+    options: ["A. 航空器無線電臺執照", "B. 最近一次維修紀錄", "C. 貨物及郵件清單"],
+    answer: "B"
+  },
+  {
+    question: "為維護飛航安全，航空器飛航時，應須遵照飛航之管制，下列何者為非",
+    options: ["A. 一般飛航之管制", "B. 目視飛航之管制", "C. 雷達飛航之管制"],
+    answer: "C"
+  },
+  {
+    question: "國際間通用之危險物品處理標準，適於國內採用者，得經誰核定後採用之",
+    options: ["A. 民航局", "B. 飛安委員會", "C. 交通部"],
+    answer: "A"
+  },
+  {
+    question: "民用航空運輸業許可證",
+    options: ["A. 可以移轉", "B. 不得移轉", "C. 航空器移轉時,可以移轉"],
+    answer: "B"
+  },
+  {
+    question: "飛航手冊其內容應包括",
+    options: ["A. 該機型與適航相關之各種限制、指示及資料", "B. 航空器使用人運作各類航空器之一般性政策、規定及限制", "C. 該機型在使用時之各種正常、不正常及緊急操作程序"],
+    answer: "A"
+  },
+  {
+    question: "飛機飛航時間之定義為",
+    options: ["A. 起飛離地至降落接觸地面之時間", "B. 起飛離地至著陸後停止移動時止之時間", "C. 指為起飛目的，開始移動時起至著陸後停止移動時止之時間"],
+    answer: "C"
+  },
+  {
+    question: "民用航空運輸業，航空器使用人應保存最近多少時間之燃油及滑油之使用紀錄以便查核",
+    options: ["A. 一個月", "B. 三個月", "C. 六個月"],
+    answer: "B"
+  },
+  {
+    question: "歐盟飛航營運規範 EU-OP內之縮寫AOC意思為",
+    options: ["A. 航線證書", "B. 航空運輸業許可證", "C. 航空器適航證"],
+    answer: "A"
+  },
+  {
+    question: "民用航空運輸業終止定期航線應於終止之日起多少時間內，將原領航線證書繳還?",
+    options: ["A. 十五日", "B. 三十日", "C. 四十五日"],
+    answer: "B"
+  },
+  {
+    question: "民用航空運輸業暫停國際客運定期航線得於暫停之日起多少時間內報請民航局復航",
+    options: ["A. 六個月", "B. 一年", "C. 十八個月"],
+    answer: "B"
+  },
+  {
+    question: "民用航空運輸業應於交通部核准籌辦新闢或增加航線期限內，備妥航空器，申請民航局完成下列哪些項目合格後，始得營業",
+    options: ["A. 航務審查", "B. 機務審查及試航", "C. 航務、機務審查及試航"],
+    answer: "C"
+  },
+  {
+    question: "民用航空運輸業申請國際客貨運包機，應於預計起飛前何時報請民航局核准",
+    options: ["A. 十個工作日", "B. 十五個工作日", "C. 二十個工作日"],
+    answer: "A"
+  },
+  {
+    question: "民用航空運輸業申請國際包機以外之不定期飛航、特種飛航或其他非營利性飛航，應於預計起飛幾日前報請民航局",
+    options: ["A. 三日", "B. 三個工作日", "C. 五日"],
+    answer: "A"
+  },
+  {
+    question: "民用航空運輸業申請國際包機以外之不定期飛航、經民航局核准後，以飛航通知單預計離到時間前後多久時間內為有效",
+    options: ["A. 各十二小時", "B. 各二十四小時", "C. 各三十六小時"],
+    answer: "B"
+  },
+  {
+    question: "民用航空運輸業於國家緊急需要時，應接受何部門之指揮，擔任交辦之運輸事項",
+    options: ["A. 國防部", "B. 外交部", "C. 交通部"],
+    answer: "C"
+  },
+  {
+    question: "民用航空運輸業對其運輸中使用之乘客機票票根或其電子檔，應自起飛之日起至少保存多久，以備民航局查核",
+    options: ["A. 六個月", "B. 一年", "C. 二年"],
+    answer: "C"
+  },
+  {
+    question: "普通航空業引進民用航空器作為空中遊覽、救護及商務專機用途時，應符合之條件下列何者為非",
+    options: ["A. 應為雙渦輪引擎", "B. 應配置飛航資料紀錄器", "C. 應配置雙駕駛員"],
+    answer: "B"
+  },
+  {
+    question: "危險物品不得攜帶或託運進入航空器，其危險物品名稱，由何部門公告之",
+    options: ["A. 民航局", "B. 飛安委員會", "C. 交通部"],
+    answer: "A"
+  },
+  {
+    question: "航空貨運承攬業得訂定航空保安計畫，向何單位申請為保安控管人",
+    options: ["A. 航空警察局", "B. 民航局", "C. 飛安委員會"],
+    answer: "A"
+  },
+  {
+    question: "航務手冊其內容應包括",
+    options: ["A. 該機型與適航相關之各種限制、指示及資料", "B. 航空器使用人運作各類航空器之一般性政策、規定及限制", "C. 該機型在使用時之各種正常、不正常及緊急操作程序"],
+    answer: "B"
+  },
+  {
+    question: "飛機使用時間之定義為",
+    options: ["A. 起飛離地至降落接觸地面之時間", "B. 起飛離地至著陸後停止移動時止之時間", "C. 指為起飛目的，開始移動時起至著陸後停止移動時止之時間"],
+    answer: "A"
+  },
+  {
+    question: "民用航空運輸業，航空器使用人應依有關之法規及程序訂定下列何手冊，作為所有航空人員之工作指導，並適時修訂之",
+    options: ["A. 機務手冊", "B. 航務手冊", "C. 飛安手冊"],
+    answer: "B"
+  },
+  {
+    question: "航空器各次之飛航，航空器使用人應指派一名駕駛員擔任機長。機長失能時其接替順位，航空器使用人應於何相關手冊中規定",
+    options: ["A. 機務", "B. 飛安", "C. 航務"],
+    answer: "C"
+  },
+  {
+    question: "航空器使用人應保存組員之飛航時間、飛航執勤期間、休息期間、執勤期間及待命期間之紀錄",
+    options: ["A. 至少連續六個月", "B. 至少連續十二個月", "C. 至少連續十八個月"],
+    answer: "B"
+  },
+  {
+    question: "航空器申請適航證書，應：",
+    options: ["A. 先領有登記證書", "B. 勿須領有登記證書", "C. 因係租用,故勿須領有登記證書"],
+    answer: "A"
+  },
+  {
+    question: "我國民用航空法第九條:航空產品與其各項裝備及零組件之設計、製造，應向民航局申請檢定、其相對之歐洲航空安全署法規為 (EC) No 1702/2003 and Annex",
+    options: ["A. part-21", "B. part-66", "C. part-145"],
+    answer: "A"
+  },
+  {
+    question: "依民用航空法第九條第三項規定，其裝備之定義為：",
+    options: ["A. 指使用於航空產品之零件", "B. 指作用失效時，將會危害航空產品安全運作之主要組件", "C. 指作用失效時，將會危害航空產品安全運作之次要組件"],
+    answer: "B"
+  },
+  {
+    question: "依民用航空法第九條第三項規定，其零組件之定義為：",
+    options: ["A. 指使用於航空產品及其裝備之零件、組件", "B. 指作用失效時，將會危害航空產品安全運作之主要組件", "C. 指作用失效時，將會危害航空產品安全運作之次要組件"],
+    answer: "A"
+  },
+  {
+    question: "通勤類航空器其載客座位數為",
+    options: ["A. 九人以下", "B. 十三人以下", "C. 十九人以下"],
+    answer: "C"
+  },
+  {
+    question: "特種作業類航空器其載客座位數為",
+    options: ["A. 九人以下", "B. 十三人以下", "C. 十九人以下"],
+    answer: "A"
+  },
+  {
+    question: "型別檢定證申請提出後，應於多少時間內完成檢定?",
+    options: ["A. 一年", "B. 兩年", "C. 三年"],
+    answer: "C"
+  },
+  {
+    question: "航空器型別檢定證及製造許可證持有人應建立維持安全之安全管理系統，其英文簡稱為:",
+    options: ["A. SAS", "B. SMS", "C. ISMS"],
+    answer: "B"
+  },
+  {
+    question: "中華民國國籍登記之民用航空器適航證書，依適航檢定分類區分為幾類?",
+    options: ["A. 兩類", "B. 四類", "C. 六類"],
+    answer: "C"
+  },
+  {
+    question: "航空器適航證書有效期限為?",
+    options: ["A. 一年", "B. 兩年", "C. 三年"],
+    answer: "A"
+  },
+  {
+    question: "航空器適航證書失效時，其持有人應自失效之日起多少日內向民航局繳還?",
+    options: ["A. 十日", "B. 二十日", "C. 三十日"],
+    answer: "B"
+  },
+  {
+    question: "特種適航證書應於有效期限屆滿後多少日內向民航局繳還?",
+    options: ["A. 三日", "B. 五日", "C. 十日"],
+    answer: "A"
+  },
+  {
+    question: "初次申請航空器適航證書，航空器所有人或使用人應於使用前多少日檢附申請書向民航局申請檢定?",
+    options: ["A. 十日", "B. 二十日", "C. 三十日"],
+    answer: "C"
+  },
+  {
+    question: "依民用航空法第九條第三項規定，其型別檢定證之定義為：",
+    options: ["A. 指對進口航空產品之設計，經審查核准發給之證書", "B. 指對航空產品之設計，經審查核准發之證書", "C. 指對航空產品重大設計變更，經審查核准發給之證書"],
+    answer: "B"
+  },
+  {
+    question: "EASA為",
+    options: ["A. 國際民用航空組織", "B. 歐洲聯合航空署", "C. 歐洲航空安全組織"],
+    answer: "C"
+  },
+  {
+    question: "安裝於航空產品上符合技術標準規定之材料、零組件或機載裝備為下列何者之定義?",
+    options: ["A. 組件", "B. 技術標準件", "C. 裝備"],
+    answer: "B"
+  },
+  {
+    question: "Type Validation Certification Basis 於我國法規之中文名稱為何?",
+    options: ["A. 型別檢定", "B. 型別認可檢定基礎", "C. 型別檢定證數據規範表"],
+    answer: "B"
+  },
+  {
+    question: "對已取得型別檢定證之航空產品，將有重大變更計畫者，應依規定",
+    options: ["A. 另行申請型別檢定證", "B. 另行申請補充型別檢定證", "C. 另行申請型別認可檢定證"],
+    answer: "A"
+  },
+  {
+    question: "製造許可證持有人，對其品質系統、製造設施及任何可能影響航空產品檢驗、符合性或適航性之變更，應於變更之日起幾日內以書面通知民航局?",
+    options: ["A. 三日", "B. 五日", "C. 十日"],
+    answer: "C"
+  },
+  {
+    question: "依民用航空法第九條第三項規定，其型別認可檢定證之定義為：",
+    options: ["A. 指對進口航空產品之設計，經審查核准發給之證書", "B. 指對航空產品之設計，經審查核准發之證書", "C. 指對航空產品重大設計變更，經審查核准發給之證書"],
+    answer: "A"
+  },
+  {
+    question: "型別檢定證持有人或其授權使用者，其製造之航空產品於使用中出現故障、失效或缺陷，造成下列何情況者應即通報民航局?                            (1)航空器設備之缺陷致著火者                 (2)客艙內出現有毒或有害氣體者                (3)螺旋槳槳葉結構發生損壞者                  (4)結構之缺陷致異常抖振者                    (5)在航空器使用期間，一套液壓系統完全失效者",
+    options: ["A. 僅情況(1)(2)和(4)應即通報民航局", "B. 僅情況(1)(2)(3)和(5)應即通報民航局", "C. 僅情況(1)(2)(3)和(4)應即通報民航局"],
+    answer: "C"
+  },
+  {
+    question: "航空產品之設計，須由何者檢附申請書向民航局申請檢定?",
+    options: ["A. 設計專利持有者", "B. 設計者", "C. 設計機構負責人"],
+    answer: "B"
+  },
+  {
+    question: "航空器所裝用之渦輪發動機於完成型別檢定後，曾經使用於已具有型別檢定證之航空器上者，該航空器應進行飛行試驗",
+    options: ["A. 五十小時以上", "B. 一百小時以上", "C. 一百五十小時以上"],
+    answer: "C"
+  },
+  {
+    question: "航空器補充型別檢定證持有人應建立確保航空器之維護計畫其應包含                             (1)結構完整之補充維護計畫                   (2)銹蝕預防計畫                                (3)品質管制流程",
+    options: ["A. 僅(1)", "B. 僅(2)", "C. (1)和(2)"],
+    answer: "C"
+  },
+  {
+    question: "與型別檢定證同時核發，並構成型別檢定證組成之文件 : 係稱為",
+    options: ["A. 型別檢定證數據規範表", "B. 補充型別認可檢定證", "C. 型別認可檢定基礎"],
+    answer: "A"
+  },
+  {
+    question: "Validation of Type Certificate-VTC 於我國法規之中文名稱為何?",
+    options: ["A. 型別認可檢定", "B. 型別認可檢定基礎", "C. 型別檢定證數據規範表"],
+    answer: "A"
+  },
+  {
+    question: "TCDS-Type Certificate Data Sheet 於我國法規之中文名稱為何?",
+    options: ["A. 型別認可檢定", "B. 型別認可檢定基礎", "C. 型別檢定證數據規範表"],
+    answer: "C"
+  },
+  {
+    question: "型別檢定證數據規範表，該數據規範表中記載了經航空產品製造商所屬國航適主管機關核准之      (1)最低性能標準                              (2)使用限制                                (3)技術限制                                 (4)型別設計基本數據",
+    options: ["A. (1)和(2)", "B. (2)和(4)", "C. (1)(2)和(3)"],
+    answer: "B"
+  },
+  {
+    question: "歐洲聯合航空署之英文縮寫為:",
+    options: ["A. FAA", "B. EASA", "C. JAA"],
+    answer: "C"
+  },
+  {
+    question: "型別檢定證持有人或其授權使用者，其製造之航空產品於使用中出現故障、失效或缺陷，造成發動機失效者應於故障、失效或缺陷確認存在後多久時間內，填具初步書面報告陳報民航局?",
+    options: ["A. 二十四小時", "B. 三日", "C. 五日"],
+    answer: "A"
+  },
+  {
+    question: "引進航空產品如持有下列哪些單位所核發之型別檢定證者，可不受型別認可檢定流程之限制，經民航局審查合格後，核發型別認可檢定證                (1)JAA                                        (2)CAAC                                    (3)EASA                                   (4)FAA",
+    options: ["A. (1)和(4)", "B. (1)(2)和(4)", "C. (1)(3)和(4)"],
+    answer: "C"
+  },
+  {
+    question: "Supplemental type certification之中文為",
+    options: ["A. 型別認可檢定證", "B. 補充型別檢定證", "C. 型別檢定證"],
+    answer: "B"
+  },
+  {
+    question: "下列何種證照之申請人，應提出符合要求之品質手冊報請民航局核准                            (1)製造許可證                               (2)型別檢定證                                  (3)技術標準件核准書                        (4)零組件製造者核准書",
+    options: ["A. (1)和(4)", "B. (1)(2)和(4)", "C. (1)(3)和(4)"],
+    answer: "C"
+  },
+  {
+    question: "補充型別檢定證之定義為:",
+    options: ["A. 指對已取得型別檢定證之航空產品為重大設計變更，經審查核准發給之證書", "B. 指對進口航空產品之設計，經審查核准發給之證書", "C. 指對航空產品之設計，經審查核准發之證書"],
+    answer: "A"
+  },
+  {
+    question: "適航掛籤之持有人於其掛籤連同產品交付買受人後，應:",
+    options: ["A. 保存一份掛籤影本", "B. 保存一份掛籤正本", "C. 掛籤正本及影本各保存一份"],
+    answer: "A"
+  },
+  {
+    question: "航空產品之設計，設計者應檢附申請書向民航局申請檢定，經檢定合格，發給",
+    options: ["A. 航空器檢定證", "B. 型別檢定證", "C. 適航證"],
+    answer: "B"
+  },
+  {
+    question: "進口具國外適航主管機關核發型別檢定證之航空產品時，其型別檢定證持有人應向民航局申請何證?",
+    options: ["A. 型別認可檢定證", "B. 進口認可檢定證", "C. 航空產品檢定證"],
+    answer: "A"
+  },
+  {
+    question: "製造許可證申請人，應對申請製造許可證之航空產品建立及維持符合規定之品質系統，並訂定下列何手冊，始報請民航局審查?",
+    options: ["A. 維修手冊", "B. 製造手冊", "C. 品質手冊"],
+    answer: "C"
+  },
+  {
+    question: "製造許可證持有人，應將製造許可證置於何處?",
+    options: ["A. 製造廠大廳之顯著位置", "B. 製造廠主要辦公室之顯著位置", "C. 許可證持有人應妥善保管"],
+    answer: "B"
+  },
+  {
+    question: "民用航空器噪音管制標準為",
+    options: ["A. 05-01A", "B. 05-02A", "C. 06-05A"],
+    answer: "C"
+  },
+  {
+    question: "民用航空器音量之測定依據國際標準組織（ISO）幾號規定之有效覺察音量測量?",
+    options: ["A. 3891", "B. 9001", "C. 9000"],
+    answer: "A"
+  },
+  {
+    question: "中華民國航空器所有人，應檢具未超過航空器噪音管制標準之原航空器製造廠之證明文件，向下列何者申請登記?",
+    options: ["A. 民航局", "B. 消防署", "C. 環保署"],
+    answer: "A"
+  },
+  {
+    question: "航空器噪音量測量程序及計算方式，依國際民航公約第幾號附約規定辦理?",
+    options: ["A. 六號", "B. 十號", "C. 十六號"],
+    answer: "C"
+  },
+  {
+    question: "外籍航空器所有人或使用人，應檢具未超過航空器噪音管制標準之原航空器製造廠之證明文件，向下列何者申請登記?",
+    options: ["A. 民航局", "B. 消防署", "C. 環保署"],
+    answer: "A"
+  },
+  {
+    question: "民用航空器噪音管制辦法其中華民國航空器所有人，應檢具未超過航空器噪音管制標準之原航空器製造廠之證明文件申請登記，經審查合格後，發給何證書?",
+    options: ["A. 登記證書", "B. 航線證書", "C. 適航證書"],
+    answer: "A"
+  },
+  {
+    question: "民用航空器噪音管制辦法其外籍航空器所有人或使用人，應檢具未超過航空器噪音管制標準之原航空器製造廠之證明文件申請登記，經審查合格後，發給何證書?",
+    options: ["A. 登記證書", "B. 航線證書", "C. 適航證書"],
+    answer: "B"
+  },
+  {
+    question: "中華民國國籍登記之民用航空器特種適航證書，依用途區分為哪幾類?",
+    options: ["A. 特許飛航類及試驗類", "B. 特技類及運輸類", "C. 特許飛航類及自由氣球類"],
+    answer: "A"
+  },
+  {
+    question: "特許飛航類特種適航證書申請人，須檢附申請書載明下列哪幾事項及資料送民航局辦理?                         (1)飛航目的                                   (2)航空器用途                                           (3)計劃航線                                          (4)航空器識別資料",
+    options: ["A. (1)和(2)", "B. (1)和(3)", "C. (1)(2)和(3)"],
+    answer: "B"
+  },
+  {
+    question: "試驗類特種適航證書申請人，應檢附申請書及執行計畫送民航局辦理：其執行計畫內容應包括下列哪幾事項?                                    (1)飛航目的                                 (2)執行目的                                               (3)預估飛航時數或架次                                   (4)航空器之三視圖",
+    options: ["A. (1)和(2)", "B. (1)(2)和(3)", "C. (2)(3)和(4)"],
+    answer: "C"
+  },
+  {
+    question: "型別認可檢定基礎之定義為何?",
+    options: ["A. 係指對申請引進之航空產品進行型別認可檢定時所依據之標準", "B. 係指針對已持有他國航適主管機關核發型別檢定證之航空產品，於引進前進行其設計、製造及持續適航認可之檢定作業", "C. 係指與型別檢定證同時核發，並構成型別檢定證組成之文件"],
+    answer: "A"
+  },
+  {
+    question: "製造許可持有者對於航空產品及零組件之品質紀錄應至少保存幾年?",
+    options: ["A. 兩年", "B. 三年", "C. 五年"],
+    answer: "C"
+  },
+  {
+    question: "Authorized release certificate 於我國法規之中文為:",
+    options: ["A. 恢復可用簽證", "B. 適航掛籤", "C. 維護簽證"],
+    answer: "B"
+  },
+  {
+    question: "出口用適航掛籤之持有人於其掛籤連同產品交付買受人後，應保存掛籤影本多久?",
+    options: ["A. 至少六個月", "B. 至少一年", "C. 至少二年"],
+    answer: "C"
+  },
+  {
+    question: "航空器適航證書有效期限因特殊情形，民航局得發給有效期為之多久的適航證書?",
+    options: ["A. 有效期限未滿二個月之航空器適航證書", "B. 有效期限未滿六個月之航空器適航證書", "C. 有效期限未滿一年之航空器適航證書"],
+    answer: "C"
+  },
+  {
+    question: "製造許可證持有人交付供他人使用之裝備或零組件應作下列何標明",
+    options: ["A. 件號及名稱、製造廠商標、製造日期", "B. 件號及名稱、製造廠商標、標誌", "C. 件號及名稱、生產地、製造廠商標、標誌"],
+    answer: "B"
+  },
+  {
+    question: "試驗類特種適航證書申請人，須檢附申請書載明下列哪幾事項及資料送民航局辦理?                         (1)飛航目的                                   (2)航空器用途                                           (3)計劃航線                                          (4)航空器識別資料",
+    options: ["A. (1)和(2)", "B. (1)和(3)", "C. (2)和(4)"],
+    answer: "C"
+  },
+  {
+    question: "型別認可檢定之定義係指:",
+    options: ["A. 針對已持有他國航適主管機關核發型別檢定證之航空產品，於引進前進行其設計、製造及持續適航認可之檢定作業", "B. 與型別檢定證同時核發，並構成型別檢定證組成之文件", "C. 對申請引進之航空產品進行型別認可檢定時所依據之標準"],
+    answer: "A"
+  },
+  {
+    question: "製造許可證持有人，對其品質系統、製造設施及任何可能影響航空產品檢驗、符合性或適航性之變更應申請變更下列何項後、報請民航局核准，換發製造許可證",
+    options: ["A. 零組件製造者核准書", "B. 製造許可項目表", "C. 技術標準件核准書"],
+    answer: "B"
+  },
+  {
+    question: "Certificate of Registration 於我國法規之中文為:",
+    options: ["A. 航空器登記證書", "B. 航空器註冊證書", "C. 航空器國籍登記證書"],
+    answer: "C"
+  },
+  {
+    question: "航空器在遇有下列何情事者，其國籍登記證書並不會失效︰",
+    options: ["A. 航空器不合適航安全條件時", "B. 航空器所有權移轉時", "C. 航空器滅失或毀壞致不能修復時"],
+    answer: "A"
+  },
+  {
+    question: "中華民國民用航空器國籍登記證書內應包含: (1)國籍標誌 (2)登記號碼 (3)製造廠號碼 (4)使用人國籍",
+    options: ["A. (1)和(2)", "B. (1)(2)和(3)", "C. (1)(2)和(4)"],
+    answer: "B"
+  },
+  {
+    question: "稱特種飛航者，係指：",
+    options: ["A. 航空器試飛、特技飛航、逾限或故障維護以及運渡等經核准之單次飛航活動", "B. 航空器試飛或特技飛航", "C. 航空器運送VIP之飛航"],
+    answer: "A"
+  },
+  {
+    question: "我國型別認可檢定程序過程可概分為幾個階段?",
+    options: ["A. 三個階段", "B. 五個階段", "C. 六個階段"],
+    answer: "B"
+  },
+  {
+    question: "中華民國航空器國籍登記應向何單位申請辦理",
+    options: ["A. 民航局", "B. 交通部", "C. 航空站"],
+    answer: "A"
+  },
+  {
+    question: "根據民用航空器適航檢定給證規則,航空器可分為那幾類:",
+    options: ["A. 渦輪類、渦輪螺旋槳類、螺旋槳類、直昇機類", "B. 通用類、特技類、特種作業類、通勤類、運輸類", "C. 短路航空器、中程航空器、長程航空器"],
+    answer: "B"
+  },
+  {
+    question: "航空器所有權移轉時,依我國法規規定原有適航證書:",
+    options: ["A. 可以隨機移轉", "B. 不可以隨機移轉", "C. 視持有之航空器登記證登記型別而定"],
+    answer: "B"
+  },
+  {
+    question: "航空器登記後，應將中華民國國籍標誌及登記號碼標明於航空器上顯著之處、其於飛機機身或機尾之標誌:",
+    options: ["A. 字之高度不得小於二十公分", "B. 字之高度不得小於三十公分", "C. 字之高度不得小於四十公分"],
+    answer: "B"
+  },
+  {
+    question: "航空器應備有標示國籍之識別牌，並固定於",
+    options: ["A. 駕駛艙內顯著之處", "B. 航空器垂直尾翼上顯著之處", "C. 主艙門附近顯著之處"],
+    answer: "C"
+  },
+  {
+    question: "適航維修管理規定，航空器應每幾年接受基本作業重量平衡?",
+    options: ["A. 一年", "B. 二年", "C. 三年"],
+    answer: "C"
+  },
+  {
+    question: "為維持航空器之適航性所從事之翻修、檢查、修理、改裝及更換零件等 ; 為下列何者之定義?",
+    options: ["A. 修理", "B. 維修", "C. 預防性維修"],
+    answer: "B"
+  },
+  {
+    question: "航空器發動機之定義為:",
+    options: ["A. 航空器引擎與其附屬裝置及所屬附件", "B. 航空器用於達成推進之引擎", "C. 航空器用於達成推進航空器之發動機"],
+    answer: "A"
+  },
+  {
+    question: "將航空器與其發動機、螺旋槳、各項裝備及零組件依適用之適航標準及要求，回復至適航狀況 ; 為下列何者之定義?",
+    options: ["A. 修理", "B. 維修", "C. 預防性維修"],
+    answer: "A"
+  },
+  {
+    question: "法規上所定義之改裝可分為: (1)主要改裝 (2)次要改裝 (3)大改裝 (4)小改裝",
+    options: ["A. (1)和(2)", "B. (1)和(4)", "C. (3)和(4)"],
+    answer: "C"
+  },
+  {
+    question: "法規上所定義之機體，不包括... (1)發動機 (2)短艙 (3)起落架 (4)螺旋槳",
+    options: ["A. 僅(1)", "B. (1)和(4)", "C. 僅(3)"],
+    answer: "B"
+  },
+  {
+    question: "下列何者由維修廠指定負維修廠所有作業權責，包括確保維修廠之人員依法從事維修工作及代表維修廠為民航局主要聯絡人?",
+    options: ["A. 維修廠經營人", "B. 維修廠管理人", "C. 維修廠董事長"],
+    answer: "B"
+  },
+  {
+    question: "持有航空器駕駛員檢定證者，駕駛非屬民用航空運輸業之航空器，可從事下列哪項工作?",
+    options: ["A. 預防性維修", "B. 維修", "C. 小修理"],
+    answer: "A"
+  },
+  {
+    question: "民用航空運輸業依核准之營運規範及維護計畫對航空器所從事之維修工作，應依何規定記載維護紀錄?",
+    options: ["A. 航空器飛航作業管理規則", "B. 航空器適航檢定維修規則", "C. 航空器檢查作業管理規則"],
+    answer: "A"
+  },
+  {
+    question: "航空器使用人所訂定之維護訓練計畫應包括何種訓練，以提升維護人員間及與飛航組員之協調合作，減少人為因素造成之事故。",
+    options: ["A. 專業技能訓練", "B. 維護資源管理訓練", "C. 職安管理訓練"],
+    answer: "B"
+  },
+  {
+    question: "航空器使用人對於航空器具年限管制件之裝置起迄日期及總使用時間或起降次數；自上次翻修後之總使用時間或起降次數之紀錄 …",
+    options: ["A. 應至少保存六個月", "B. 應至少保存兩年", "C. 應保存至航空器或零組件報廢"],
+    answer: "C"
+  },
+  {
+    question: "維護簽放符合維護手冊規定之詳細維護工作紀錄應保存 …",
+    options: ["A. 不得少於六個月", "B. 不得少於一年", "C. 不得少於兩年"],
+    answer: "B"
+  },
+  {
+    question: "日常維護簽放紀錄應保存 …",
+    options: ["A. 六個月以上", "B. 一年以上", "C. 兩年以上"],
+    answer: "B"
+  },
+  {
+    question: "航空器所有人或使用人應依原製造廠規定，於__________中訂定年限管制件管制計畫，報請民航局備查後實施",
+    options: ["A. 營運規範", "B. 維護計畫", "C. 飛安計畫"],
+    answer: "B"
+  },
+  {
+    question: "航空器維護人員執勤時間於連續七日內，應給予…",
+    options: ["A. 連續十二小時之休息", "B. 連續二十四小時之休息", "C. 連續三十六小時之休息"],
+    answer: "B"
+  },
+  {
+    question: "航空器因飛往執行每一百飛航小時年度檢查之地點而超過其飛航小時之限度，但不得超過幾小時?",
+    options: ["A. 十小時", "B. 十五小時", "C. 二十小時"],
+    answer: "A"
+  },
+  {
+    question: "型別檢定證、補充型別檢定證有效期限為:",
+    options: ["A. 永久有效", "B. 一年", "C. 三年"],
+    answer: "A"
+  },
+  {
+    question: "航空器連續停用逾多少日者，為不合於適航安全條件。但因維修者，不在此限。",
+    options: ["A. 三十", "B. 六十", "C. 九十"],
+    answer: "C"
+  },
+  {
+    question: "航空器所有人或使用人應備有_______紀錄，並依規定於飛航前後填記",
+    options: ["A. 飛航日誌", "B. 維護", "C. 飛航及維護"],
+    answer: "C"
+  },
+  {
+    question: "航空器換用新經歷紀錄簿時，原經歷紀錄簿應",
+    options: ["A. 不需保存", "B. 仍須保存", "C. 交由民航局備查"],
+    answer: "B"
+  },
+  {
+    question: "航空器適航之簽證人員，應持有有效之___________，並依航空器維護能力手冊之權限，確實執行各項維護及簽放作業。",
+    options: ["A. 地面機械員檢定證書", "B. 簽派員執照", "C. 技師士證照"],
+    answer: "A"
+  },
+  {
+    question: "民航局為確保航空器之持續適航標準，當發現航空器、發動機、螺旋槳或各項零組件有不安全情況存在，且其不安全情況並有可能存在於其他相同設計之產品上時，民航局得發布_________，要求執行檢查、修理、修改、更換或限制操作使用。",
+    options: ["A. 飛安通告", "B. 操作指令", "C. 適航指令"],
+    answer: "C"
+  },
+  {
+    question: "不符合適航指令之航空器、發動機、螺旋槳或各項零組件內容要求，視為______，任何人不得操作使用，直至執行適航指令之內容要求為止。",
+    options: ["A. 適航", "B. 不適航", "C. 以上皆對"],
+    answer: "B"
+  },
+  {
+    question: "航空器使用人因特殊情況無法符合適航指令時，得向_____申請展延完成期限或替代方法。",
+    options: ["A. FAA", "B. JAA", "C. 民航局"],
+    answer: "C"
+  },
+  {
+    question: "航空器所有人或使用人應對領有______證書之航空器為妥善之維護，並應於飛航前確實遵照規定施行檢查，保持其適航條件。",
+    options: ["A. 登記", "B. 適航", "C. 保險"],
+    answer: "B"
+  },
+  {
+    question: "未持有檢定證者，於何情形下，得從事維修及預防性維修工作。",
+    options: ["A. 於持有機械員或維修員檢定證者之監督下", "B. 大修理、大改裝後之檢查工作", "C. 及非民用航空運輸業者依其維護計畫所從事之檢查工作"],
+    answer: "A"
+  },
+  {
+    question: "航空器各項維護工作，應依據原製造廠之相關技術手冊、文件或______-核准程序執行之。",
+    options: ["A. 使用人", "B. 所有人", "C. 民航局"],
+    answer: "C"
+  },
+  {
+    question: "航空器適航檢定維修規則",
+    options: ["A. 06-01A", "B. 06-02A", "C. 06-07A"],
+    answer: "A"
+  },
+  {
+    question: "何謂預防性維修?",
+    options: ["A. 指為維持航空器之適航性所從事之翻修、檢查、修理、改裝及更換零件", "B. 指簡單之組裝作業、更換小標準零件及從事封存作業。", "C. 指將航空器與其發動機、螺旋槳、各項裝備及零組件依適用之適航標準及要求，回復至適航狀況"],
+    answer: "B"
+  },
+  {
+    question: "何謂修理?",
+    options: ["A. 指為維持航空器之適航性所從事之翻修、檢查、修理、改裝及更換零件", "B. 指簡單之組裝作業、更換小標準零件及從事封存作業。", "C. 指將航空器與其發動機、螺旋槳、各項裝備及零組件依適用之適航標準及要求，回復至適航狀況"],
+    answer: "C"
+  },
+  {
+    question: "何謂維修?",
+    options: ["A. 指為維持航空器之適航性所從事之翻修、檢查、修理、改裝及更換零件", "B. 指簡單之組裝作業、更換小標準零件及從事封存作業。", "C. 指將航空器與其發動機、螺旋槳、各項裝備及零組件依適用之適航標準及要求，回復至適航狀況"],
+    answer: "A"
+  },
+  {
+    question: "航空器所有人或使用人應於航空器適航證書期限屆滿多少日前向民航局申請換發之?",
+    options: ["A. 十日", "B. 二十日", "C. 三十日"],
+    answer: "C"
+  },
+  {
+    question: "進口貨機機齡超過多少年者，申請航空器適航證書時，應檢附結構維修經歷紀錄、結構完整性計畫及補充檢查計畫，向民航局申請檢定?",
+    options: ["A. 五年", "B. 十年", "C. 十四年"],
+    answer: "C"
+  },
+  {
+    question: "航空器使用人於完成首次高齡飛機檢查及紀錄審查後，後續每次檢查及紀錄審查不得超過幾年?",
+    options: ["A. 三年", "B. 五年", "C. 七年"],
+    answer: "C"
+  },
+  {
+    question: "航空器使用人對於航空器依維護計畫規定執行之航空器檢查紀錄 …",
+    options: ["A. 應至少保存六個月", "B. 應至少保存兩年", "C. 應保存至航空器或零組件報廢"],
+    answer: "C"
+  },
+  {
+    question: "正駕駛員於最近九十日內，至少應在其檢定機型之同型航空器實施任一航路起飛及降落幾次之紀錄，航空器使用人始得派遣其擔任機長?",
+    options: ["A. 三次", "B. 四次", "C. 五次"],
+    answer: "A"
+  },
+  {
+    question: "航空器應接受基本作業重量平衡之稱重。但因特殊情形得酌予延展稱重期間，最長不超過:",
+    options: ["A. 二年", "B. 三年", "C. 四年"],
+    answer: "C"
+  },
+  {
+    question: "航空器應接受基本作業重量平衡之稱重。但遇下列何情形者，應重新稱重:",
+    options: ["A. 飛機基本作業重量改變累積增減達其最大落地重量千分之五者", "B. 飛機基本作業重量改變累積增減達其最大落地重量千分之四者", "C. 飛機基本作業重量改變累積增減達其最大落地重量千分之二者"],
+    answer: "A"
+  },
+  {
+    question: "航空器、發動機或螺旋槳因滅失或毀壞致不能修復、報廢或永久停用時，各類經歷紀錄簿應由航空器所有人或使用人自發生之日起至少保存多久?",
+    options: ["A. 二年", "B. 三年", "C. 四年"],
+    answer: "A"
+  },
+  {
+    question: "下列何項不屬於預防性維修。",
+    options: ["A. 拆除、安裝及修理起落架輪胎", "B. 修理時使用替代材料", "C. 更換安全帶"],
+    answer: "B"
+  },
+  {
+    question: "航空器應依規定記載飛航及維修紀錄，並自記載之日起，至少應保存多久?",
+    options: ["A. 六個月", "B. 一年", "C. 二年"],
+    answer: "B"
+  },
+  {
+    question: "不同日期之飛航及維護紀錄 …",
+    options: ["A. 不得共同記載於同一表內", "B. 可記載於同一表內", "C. 須記載於下一頁面之表內"],
+    answer: "A"
+  },
+  {
+    question: "航空器、發動機，螺旋槳及其各項零組件於完成大修理、大改裝後應由負責維護工作，且具有合格證書之機械員填具__________",
+    options: ["A. 大修理、大改裝妥適報告表", "B. 大修理/大改裝報告書", "C. 大修理/大改裝申請書"],
+    answer: "A"
+  },
+  {
+    question: "航空器應備有完整之各類經歷紀錄簿並應於各項工作完成後幾日內記載之:",
+    options: ["A. 三十", "B. 六十", "C. 九十"],
+    answer: "A"
+  },
+  {
+    question: "航空器適航檢定維修管理規則由…",
+    options: ["A. … 民航局訂立 。", "B. … 交通部訂立 。", "C. … 行政院訂立 。"],
+    answer: "B"
+  },
+  {
+    question: "年限管制件：指依年限狀態必須…",
+    options: ["A. 強制更換之零件", "B. 強制翻修之零件", "C. 強制檢驗之零件"],
+    answer: "A"
+  },
+  {
+    question: "持有航空器駕駛員檢定證者，駕駛非屬普通航空業之航空器，可從事下列哪項工作?",
+    options: ["A. 修理", "B. 預防性維修", "C. 小修理"],
+    answer: "B"
+  },
+  {
+    question: "航空器使用人應訂定航空器維護能力手冊，其手冊之規劃及實施應符合 …",
+    options: ["A. 人為因素原則", "B. 安全維護原則", "C. 輔導工作原則"],
+    answer: "A"
+  },
+  {
+    question: "航空器使用人如無法於規定期限內完成高齡飛機檢查及紀錄審查者，得向民航局申請延展，延展期間不得超過幾日?",
+    options: ["A. 六十日", "B. 九十日", "C. 一百二十日"],
+    answer: "B"
+  },
+  {
+    question: "航空器使用人對於航空器及其主要機件之改裝及修理相關資料之紀錄 …",
+    options: ["A. 應至少保存六個月", "B. 應至少保存兩年", "C. 應保存至航空器或零組件報廢"],
+    answer: "C"
+  },
+  {
+    question: "日常維護工作紀錄應保存 …",
+    options: ["A. 六個月以上", "B. 一年以上", "C. 兩年以上"],
+    answer: "B"
+  },
+  {
+    question: "正駕駛員於最近九十日內，至少應在其檢定機型之同型航空器或民航局核准之模擬機實施幾次起降，航空器使用人始得派遣其擔任正駕駛員?",
+    options: ["A. 三次", "B. 四次", "C. 五次"],
+    answer: "A"
+  },
+  {
+    question: "航管雷達迴波器應於飛航前多久時間內執行測試及檢查?",
+    options: ["A. 每二十四個曆月", "B. 每二年", "C. 每十二個曆月"],
+    answer: "A"
+  },
+  {
+    question: "航空器除由其所有人洽合格機械員實施檢查外,民航局亦派員檢查,其時機是航空器實施:",
+    options: ["A. 小修﹑檢查﹑大修時", "B. 小修﹑大修﹑改裝時", "C. 大修﹑改裝﹑適航換證時"],
+    answer: "C"
+  },
+  {
+    question: "航空器應接受基本作業重量平衡之稱重。但遇下列何情形者，應重新稱重:",
+    options: ["A. 飛機重心位移達平均氣動力弦千分之五者", "B. 飛機重心位移達平均氣動力弦千分之四者", "C. 飛機重心位移達平均氣動力弦千分之三者"],
+    answer: "A"
+  },
+  {
+    question: "非屬民用航空運輸業、對所使用之航空器與其發動機、螺旋槳、各項裝備及零組件之檢查，經認定不得恢復可用時，航空器使用人應 …",
+    options: ["A. 報請民航局備查", "B. 於航空器或駕駛艙內適當位置懸掛不可用之標示", "C. 於恢復可用時，重新申請適航證書"],
+    answer: "B"
+  },
+  {
+    question: "航空器應依規定記載飛航及維修紀錄：其維修部分之紀錄應由誰簽證後始得飛航?",
+    options: ["A. 持有地面機械員檢定證者", "B. 持有地面機械員檢定證者和機長", "C. 持有地面機械員檢定證者和持有航空器駕駛員檢定證者"],
+    answer: "B"
+  },
+  {
+    question: "為延展航程之目的於客艙或貨艙改(安)裝油箱時，應填寫多少份航空器大修理、大改裝妥適報告表?",
+    options: ["A. 二份", "B. 三份", "C. 四份"],
+    answer: "B"
+  }
+
+
+]
+
+               var NAME_STORE_KEY = "147_username_v1";
+        function loadSavedName() {
+          try {
+            var n = localStorage.getItem(NAME_STORE_KEY);
+            return (n || "").trim();
+          } catch (e) {
+            return "";
+          }
+        }
+        function saveName(n) {
+          n = (n || "").trim();
+          if (!n) return;
+          try {
+            localStorage.setItem(NAME_STORE_KEY, n);
+          } catch (e) {}
+        }
+        function clearSavedName() {
+          try {
+            localStorage.removeItem(NAME_STORE_KEY);
+          } catch (e) {}
+        }
+
+        /* ====== 錯題記憶（離線永久）====== */
+        var WRONG_STORE_PREFIX = "147_wrong_v1::";
+        var currentUserName = "";
+        var wrongSet = {}; // key -> {t,q,a,s}
+
+        function djb2Hash(str) {
+          var hash = 5381, i, c;
+          for (i = 0; i < str.length; i++) {
+            c = str.charCodeAt(i);
+            hash = ((hash << 5) + hash) + c;
+            hash = hash & 0x7fffffff;
+          }
+          return hash.toString(16);
+        }
+
+        function qKey(q) {
+          var base = (q.question || "") + "||" + (q.answer || "") + "||" + (q.options || []).join("||");
+          return "q_" + djb2Hash(base);
+        }
+
+        function storeKeyByName(name) {
+          var n = (name || "").trim();
+          if (!n) n = "_guest";
+          return WRONG_STORE_PREFIX + n;
+        }
+
+        function loadWrongSet(name) {
+          try {
+            var raw = localStorage.getItem(storeKeyByName(name));
+            if (!raw) return {};
+            var obj = JSON.parse(raw);
+            return (obj && typeof obj === "object") ? obj : {};
+          } catch (e) {
+            return {};
+          }
+        }
+
+        function saveWrongSet(name, setObj) {
+          try {
+            localStorage.setItem(storeKeyByName(name), JSON.stringify(setObj || {}));
+          } catch (e) {}
+        }
+
+        function wrongCount(setObj) {
+          var c = 0, k;
+          for (k in setObj) if (setObj.hasOwnProperty(k)) c++;
+          return c;
+        }
+
+        function safeName(n) {
+          n = (n || "").trim();
+          return n ? n : "_guest";
+        }
+
+        function updateWrongMemInfo() {
+          var who = safeName(currentUserName);
+          var msg = "【錯題記憶】" + who + " 目前記住 " + wrongCount(wrongSet) + " 題";
+
+          var elW = document.getElementById("wrongMemInfoWelcome");
+          if (elW) elW.textContent = msg;
+
+          var elR = document.getElementById("wrongMemInfoResults");
+          if (elR) elR.textContent = msg;
+
+          var elP = document.getElementById("wrongMemInfoPanel");
+          if (elP) elP.textContent = msg;
+        }
+
+        function markWrong(q, selectedText) {
+          var k = qKey(q);
+          wrongSet[k] = { t: Date.now(), q: q.question, a: q.answer, s: selectedText || "" };
+          saveWrongSet(currentUserName, wrongSet);
+          updateWrongMemInfo();
+        }
+
+        function unmarkWrong(q) {
+          var k = qKey(q);
+          if (wrongSet[k]) {
+            delete wrongSet[k];
+            saveWrongSet(currentUserName, wrongSet);
+            updateWrongMemInfo();
+          }
+        }
+
+        function getWrongQuestionsFromBank() {
+          return questions.filter(function (q) {
+            return !!wrongSet[qKey(q)];
+          });
+        }
+
+        function formatTimeMs(ms) {
+          try { return new Date(ms).toLocaleString(); }
+          catch (e) { return String(ms || ""); }
+        }
+
+        function renderWrongList() {
+          var tb = document.getElementById("wrongListBody");
+          if (!tb) return;
+          tb.innerHTML = "";
+
+          var wrongQs = getWrongQuestionsFromBank();
+          if (!wrongQs.length) {
+            var tr0 = document.createElement("tr");
+            tr0.innerHTML = '<td class="mono">-</td><td colspan="4">目前沒有錯題記憶 🎉</td>';
+            tb.appendChild(tr0);
+            return;
+          }
+
+          wrongQs.sort(function (a, b) {
+            var da = wrongSet[qKey(a)] ? wrongSet[qKey(a)].t : 0;
+            var db = wrongSet[qKey(b)] ? wrongSet[qKey(b)].t : 0;
+            return db - da;
+          });
+
+          wrongQs.forEach(function (q, idx) {
+            var rec = wrongSet[qKey(q)] || {};
+            var correctText = q.options.find(function (o) { return o.charAt(0) === q.answer; }) || (q.answer || "");
+            var tr = document.createElement("tr");
+            tr.className = "wrong";
+            tr.innerHTML =
+              '<td class="mono">#' + (idx + 1) + "</td>" +
+              "<td>" + (q.question || "") + "</td>" +
+              "<td>" + (rec.s || "") + "</td>" +
+              '<td class="mono ans-cell">' + (q.answer + "｜" + correctText) + "</td>" +
+              '<td class="mono">' + formatTimeMs(rec.t) + "</td>";
+            tb.appendChild(tr);
+          });
+        }
+
+        /* ====== 工具 ====== */
+        function shuffle(array) {
+          for (var i = array.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = array[i]; array[i] = array[j]; array[j] = tmp;
+          }
+          return array;
+        }
+        function fmtTime(s) {
+          var m = Math.floor(s / 60).toString().padStart(2, "0");
+          var sec = (s % 60).toString().padStart(2, "0");
+          return m + ":" + sec;
+        }
+
+        function setViewClass(idToShow) {
+          var ids = ["welcome", "quiz", "results", "bank", "wrongReview"];
+          for (var i = 0; i < ids.length; i++) {
+            document.body.classList.remove("view-" + ids[i]);
+          }
+          document.body.classList.add("view-" + idToShow);
+        }
+
+        function showView(idToShow) {
+          var ids = ["welcome","quiz","results","bank","wrongReview"];
+          for (var i = 0; i < ids.length; i++) {
+            var id = ids[i];
+            var el = document.getElementById(id);
+            if (!el) continue;
+            if (id === idToShow) el.classList.remove("hidden");
+            else el.classList.add("hidden");
+          }
+          setViewClass(idToShow);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        /* ====== 深色模式：持久化 ====== */
+        var darkBtn = document.getElementById("darkModeToggle");
+        function applyInitialTheme() {
+          try {
+            var saved = localStorage.getItem("theme");
+            var isDark = (saved === "dark") || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches);
+            document.body.classList.toggle("dark", isDark);
+            darkBtn.setAttribute("aria-pressed", String(isDark));
+          } catch (e) {}
+          document.documentElement.classList.remove("preload-dark");
+        }
+        applyInitialTheme();
+        darkBtn.addEventListener("click", function () {
+          var willDark = !document.body.classList.contains("dark");
+          document.body.classList.toggle("dark", willDark);
+          darkBtn.setAttribute("aria-pressed", String(willDark));
+          try { localStorage.setItem("theme", willDark ? "dark" : "light"); } catch (e) {}
+        });
+
+        /* ====== 狀態 ====== */
+        var shuffledQuestions;
+        var current = 0, total = 0, timer = 80 * 60, interval, answers = [];
+        var quizActive = false;
+        var progressBar = document.getElementById("progressBar");
+
+        /* ====== 元件 ====== */
+        var startBtn = document.getElementById("startBtn");
+        var prevBtn = document.getElementById("prevBtn");
+        var leaveBtn = document.getElementById("leaveBtn");
+        var retryBtn = document.getElementById("retryBtn");
+        var showWrongBtn = document.getElementById("showWrongBtn");
+        var showAllBtn = document.getElementById("showAllBtn");
+        var openBankBtn = document.getElementById("openBankBtn");
+        var toBankFromResults = document.getElementById("toBankFromResults");
+
+        var openWrongPanelFromWelcome = document.getElementById("openWrongPanelFromWelcome");
+        var openWrongPanelFromResults = document.getElementById("openWrongPanelFromResults");
+
+        var wrongNameInput = document.getElementById("wrongNameInput");
+        var wrongQuestionLimit = document.getElementById("wrongQuestionLimit");
+        var wrongDurationInput = document.getElementById("wrongDurationInput");
+        var startWrongQuizBtn = document.getElementById("startWrongQuizBtn");
+        var clearWrongMemBtn = document.getElementById("clearWrongMemBtn");
+        var backToWelcomeFromWrong = document.getElementById("backToWelcomeFromWrong");
+        var toBankFromWrong = document.getElementById("toBankFromWrong");
+
+        var clearSavedNameBtn = document.getElementById("clearSavedNameBtn");
+
+        var bankBody = document.getElementById("bankBody");
+        var bankSearch = document.getElementById("bankSearch");
+        var perPageSel = document.getElementById("perPage");
+        var pageInfo = document.getElementById("pageInfo");
+        var prevPageBtn = document.getElementById("prevPage");
+        var nextPageBtn = document.getElementById("nextPage");
+        var backToWelcome = document.getElementById("backToWelcome");
+        var pagination = document.querySelector("#bank .pagination");
+
+        var durationInput = document.getElementById("durationInput");
+        var questionLimitInput = document.getElementById("questionLimit");
+        var nameInput = document.getElementById("nameInput");
+
+        var bankFiltered = questions.slice();
+        var page = 1;
+
+        function totalPages() {
+          var sel = perPageSel.value;
+          if (sel === "all") return 1;
+          return Math.max(1, Math.ceil(bankFiltered.length / parseInt(sel || "10", 10)));
+        }
+
+        /* ====== 姓名記憶 ====== */
+        (function applySavedName() {
+          var saved = loadSavedName();
+          if (saved) {
+            if (nameInput) nameInput.value = saved;
+            if (wrongNameInput) wrongNameInput.value = saved;
+          }
+        })();
+
+        if (nameInput) {
+          nameInput.addEventListener("input", function () {
+            var n = (nameInput.value || "").trim();
+            if (n) saveName(n);
+          });
+        }
+        if (clearSavedNameBtn) {
+          clearSavedNameBtn.addEventListener("click", function () {
+            if (!confirm("確定要清除裝置記住的姓名嗎？")) return;
+            clearSavedName();
+            if (nameInput) nameInput.value = "";
+            if (wrongNameInput) wrongNameInput.value = "";
+            alert("已清除記住的姓名");
+          });
+        }
+
+        /* ====== 錯題畫面入口 ====== */
+        function openWrongPanel() {
+          if (quizActive) { alert("測驗進行中不可進入錯題記憶畫面。"); return; }
+
+          var n = "";
+          if (wrongNameInput && wrongNameInput.value) n = wrongNameInput.value;
+          else if (nameInput && nameInput.value) n = nameInput.value;
+          else n = loadSavedName();
+          n = safeName(n);
+
+          currentUserName = n;
+          wrongSet = loadWrongSet(currentUserName);
+          updateWrongMemInfo();
+
+          if (wrongNameInput) wrongNameInput.value = currentUserName;
+          if (wrongQuestionLimit) wrongQuestionLimit.value = (questionLimitInput && questionLimitInput.value) ? questionLimitInput.value : "";
+          if (wrongDurationInput) wrongDurationInput.value = (durationInput && durationInput.value) ? durationInput.value : "80";
+
+          renderWrongList();
+          showView("wrongReview");
+        }
+
+        if (openWrongPanelFromWelcome) openWrongPanelFromWelcome.addEventListener("click", openWrongPanel);
+        if (openWrongPanelFromResults) openWrongPanelFromResults.addEventListener("click", openWrongPanel);
+
+        if (backToWelcomeFromWrong) backToWelcomeFromWrong.addEventListener("click", function () { showView("welcome"); });
+        if (toBankFromWrong) toBankFromWrong.addEventListener("click", function () { enterBank(); });
+
+        if (wrongNameInput) {
+          wrongNameInput.addEventListener("input", function () {
+            var n = safeName(wrongNameInput.value);
+            currentUserName = n;
+            if (n && n !== "_guest") {
+              saveName(n);
+              if (nameInput) nameInput.value = n;
+            }
+            wrongSet = loadWrongSet(currentUserName);
+            updateWrongMemInfo();
+            renderWrongList();
+          });
+        }
+
+        if (clearWrongMemBtn) {
+          clearWrongMemBtn.addEventListener("click", function () {
+            var n = safeName(wrongNameInput ? wrongNameInput.value : currentUserName);
+            currentUserName = n;
+            if (!confirm("確定要清除【" + currentUserName + "】的錯題記憶嗎？")) return;
+            wrongSet = {};
+            saveWrongSet(currentUserName, wrongSet);
+            updateWrongMemInfo();
+            renderWrongList();
+            alert("已清除錯題記憶");
+          });
+        }
+
+        if (startWrongQuizBtn) {
+          startWrongQuizBtn.addEventListener("click", function () {
+            if (quizActive) { alert("測驗進行中不可開始錯題測驗。"); return; }
+
+            currentUserName = safeName(wrongNameInput ? wrongNameInput.value : currentUserName);
+            if (currentUserName && currentUserName !== "_guest") {
+              saveName(currentUserName);
+              if (nameInput) nameInput.value = currentUserName;
+            }
+
+            wrongSet = loadWrongSet(currentUserName);
+            updateWrongMemInfo();
+
+            var wrongQs = getWrongQuestionsFromBank();
+            if (!wrongQs.length) { alert("目前沒有錯題記憶 🎉"); return; }
+
+            var qLimit = parseInt((wrongQuestionLimit && wrongQuestionLimit.value) ? wrongQuestionLimit.value : "", 10);
+            if (!qLimit || qLimit <= 0) qLimit = wrongQs.length;
+
+            var minutes = parseInt((wrongDurationInput && wrongDurationInput.value) ? wrongDurationInput.value : "80", 10);
+            if (isNaN(minutes)) minutes = 80;
+            minutes = Math.max(1, Math.min(999, minutes));
+
+            shuffledQuestions = shuffle(wrongQs.slice()).slice(0, Math.min(qLimit, wrongQs.length));
+            total = shuffledQuestions.length;
+            current = 0;
+            answers = [];
+            timer = minutes * 60;
+            quizActive = true;
+
+            document.getElementById("welcomeName").innerText = "錯題測驗: " + currentUserName;
+            document.getElementById("total").innerText = total;
+            document.getElementById("timer").innerText = fmtTime(timer);
+            updateProgress();
+
+            clearInterval(interval);
+            interval = setInterval(function () {
+              if (timer > 0 && quizActive) {
+                timer--;
+                document.getElementById("timer").innerText = fmtTime(timer);
+              } else if (quizActive && timer <= 0) {
+                clearInterval(interval);
+                finish();
+              }
+            }, 1000);
+
+            showQ();
+            showView("quiz");
+          });
+        }
+
+        /* ====== 一般測驗 ====== */
+        startBtn.addEventListener("click", function () {
+          var n = (nameInput.value || "").trim();
+          var qLimit = parseInt((questionLimitInput.value || "").trim(), 10);
+
+          if (!n) {
+            var savedN = loadSavedName();
+            if (savedN) { n = savedN; nameInput.value = savedN; }
+          }
+          if (!n) return alert("請輸入姓名 / Enter your name");
+          if (!qLimit || qLimit <= 0) return alert("請輸入要作答的題數 / Enter number of questions");
+
+          saveName(n);
+
+          currentUserName = safeName(n);
+          wrongSet = loadWrongSet(currentUserName);
+          updateWrongMemInfo();
+
+          var minutes = parseInt((durationInput && durationInput.value) ? durationInput.value : "80", 10);
+          if (isNaN(minutes)) minutes = 80;
+          minutes = Math.max(1, Math.min(999, minutes));
+
+          shuffledQuestions = shuffle(questions.slice()).slice(0, Math.min(qLimit, questions.length));
+          total = shuffledQuestions.length;
+          current = 0;
+          answers = [];
+          timer = minutes * 60;
+          quizActive = true;
+
+          document.getElementById("welcomeName").innerText = "歡迎: " + currentUserName;
+          document.getElementById("total").innerText = total;
+          document.getElementById("timer").innerText = fmtTime(timer);
+          updateProgress();
+
+          clearInterval(interval);
+          interval = setInterval(function () {
+            if (timer > 0 && quizActive) {
+              timer--;
+              document.getElementById("timer").innerText = fmtTime(timer);
+            } else if (quizActive && timer <= 0) {
+              clearInterval(interval);
+              finish();
+            }
+          }, 1000);
+
+          showQ();
+          showView("quiz");
+        });
+
+        prevBtn.addEventListener("click", function () {
+          if (current > 0) { current--; answers.pop(); showQ(); }
+        });
+
+        leaveBtn.addEventListener("click", finish);
+        retryBtn.addEventListener("click", function () { location.reload(); });
+        showWrongBtn.addEventListener("click", function () { renderResults(answers.filter(function (a) { return !a.correct; })); });
+        showAllBtn.addEventListener("click", function () { renderResults(answers); });
+
+        openBankBtn.addEventListener("click", enterBank);
+        toBankFromResults.addEventListener("click", enterBank);
+
+        /* ====== 題庫 ====== */
+        perPageSel.addEventListener("change", function () { page = 1; renderBank(); });
+        bankSearch.addEventListener("input", applyFilter);
+        prevPageBtn.addEventListener("click", function () { if (page > 1) { page--; renderBank(); } });
+        nextPageBtn.addEventListener("click", function () { if (page < totalPages()) { page++; renderBank(); } });
+        backToWelcome.addEventListener("click", function () { showView("welcome"); });
+
+        function enterBank() {
+          if (quizActive) { alert("測驗進行中不可瀏覽題庫。"); return; }
+          if (!bankSearch.value) { bankFiltered = questions.slice(); page = 1; }
+          renderBank();
+          showView("bank");
+        }
+
+        function applyFilter() {
+          var kw = bankSearch.value.trim().toLowerCase();
+          bankFiltered = kw
+            ? questions.filter(function (q) {
+                if (q.question.toLowerCase().indexOf(kw) !== -1) return true;
+                for (var i = 0; i < q.options.length; i++) {
+                  if (q.options[i].toLowerCase().indexOf(kw) !== -1) return true;
+                }
+                return false;
+              })
+            : questions.slice();
+          page = 1;
+          renderBank();
+        }
+
+        function renderBank() {
+          bankBody.innerHTML = "";
+          var sel = perPageSel.value;
+          var per = (sel === "all") ? bankFiltered.length : parseInt(sel || "10", 10);
+          var start = (page - 1) * per;
+          var items = (sel === "all") ? bankFiltered.slice() : bankFiltered.slice(start, start + per);
+
+          for (var i = 0; i < items.length; i++) {
+            var q = items[i];
+            var tr = document.createElement("tr");
+            var num = (sel === "all") ? (i + 1) : (start + i + 1);
+            var correctText = "";
+            for (var k = 0; k < q.options.length; k++) {
+              if (q.options[k].charAt(0) === q.answer) { correctText = q.options[k]; break; }
+            }
+
+            var optsHtml = "";
+            for (var j = 0; j < q.options.length; j++) {
+              var o = q.options[j];
+              var isC = (o.charAt(0) === q.answer);
+              optsHtml += '<span class="opt-row ' + (isC ? 'is-correct' : '') + '">' +
+                          (isC ? '<span class="ans-chip">正解</span>' : '') +
+                          o + '</span>';
+            }
+
+            tr.innerHTML =
+              '<td class="mono">#' + num + "</td>" +
+              "<td>" + q.question + "</td>" +
+              "<td>" + optsHtml + "</td>" +
+              '<td class="mono ans-cell">' + (q.answer + "｜" + correctText) + "</td>";
+            bankBody.appendChild(tr);
+          }
+
+          var tp = totalPages();
+          if (sel === "all") {
+            if (pagination) pagination.style.display = "none";
+            pageInfo.textContent = "全部顯示（共 " + bankFiltered.length + " 題）";
+            prevPageBtn.disabled = true;
+            nextPageBtn.disabled = true;
+          } else {
+            if (pagination) pagination.style.display = "flex";
+            pageInfo.textContent = "第 " + page + " / " + tp + " 頁（共 " + bankFiltered.length + " 題）";
+            prevPageBtn.disabled = (page <= 1);
+            nextPageBtn.disabled = (page >= tp);
+          }
+        }
+
+        /* ====== 測驗：出題/進度/結束 ====== */
+        function showQ() {
+          if (current >= total) return finish();
+
+          document.getElementById("current").innerText = current + 1;
+          updateProgress();
+
+          var q = shuffledQuestions[current];
+          document.getElementById("questionText").innerText = q.question;
+
+          var optDiv = document.getElementById("options");
+          optDiv.innerHTML = "";
+
+          var optionsWithFlag = [];
+          for (var i = 0; i < q.options.length; i++) {
+            optionsWithFlag.push({ text: q.options[i], isAnswer: q.options[i].charAt(0) === q.answer });
+          }
+          optionsWithFlag = shuffle(optionsWithFlag);
+
+          for (var j = 0; j < optionsWithFlag.length; j++) {
+            (function (opt) {
+              var lbl = document.createElement("label");
+              var rd = document.createElement("input");
+              rd.type = "radio";
+              rd.name = "opt";
+              rd.value = opt.text;
+
+              rd.onchange = function () {
+                var correctText = "";
+                for (var k = 0; k < q.options.length; k++) {
+                  if (q.options[k].charAt(0) === q.answer) { correctText = q.options[k]; break; }
+                }
+
+                if (opt.isAnswer) unmarkWrong(q);
+                else markWrong(q, opt.text);
+
+                answers.push({
+                  q: q,
+                  selectedText: opt.text,
+                  correctText: correctText,
+                  correct: opt.isAnswer
+                });
+
+                current++;
+                showQ();
+              };
+
+              lbl.appendChild(rd);
+              lbl.appendChild(document.createTextNode(" " + opt.text));
+              optDiv.appendChild(lbl);
+            })(optionsWithFlag[j]);
+          }
+        }
+
+        function updateProgress() {
+          var percent = (current / total) * 100;
+          progressBar.style.width = percent + "%";
+        }
+
+        function finish() {
+          clearInterval(interval);
+          quizActive = false;
+
+          showView("results");
+          renderResults(answers);
+
+          var right = 0;
+          for (var i = 0; i < answers.length; i++) if (answers[i].correct) right++;
+
+          document.getElementById("scoreSummary").innerText =
+            "答對 " + right + " 題 / 已作答 " + answers.length + " 題 / 共 " + total + " 題";
+
+          wrongSet = loadWrongSet(currentUserName);
+          updateWrongMemInfo();
+        }
+
+        function renderResults(data) {
+          var tb = document.getElementById("resultsBody");
+          tb.innerHTML = "";
+          for (var i = 0; i < data.length; i++) {
+            var a = data[i];
+            var tr = document.createElement("tr");
+            tr.innerHTML =
+              "<td>" + a.q.question + "</td>" +
+              "<td>" + a.selectedText + "</td>" +
+              '<td class="ans-cell">' + a.correctText + "</td>" +
+              "<td>" + (a.correct ? "O" : "X") + "</td>";
+            if (!a.correct) tr.classList.add("wrong");
+            tb.appendChild(tr);
+          }
+        }
+
+        /* ====== 初始化（先用已記住姓名載入錯題數） ====== */
+        (function initUser() {
+          var saved = loadSavedName();
+          currentUserName = safeName(saved || (nameInput ? nameInput.value : ""));
+          wrongSet = loadWrongSet(currentUserName);
+          updateWrongMemInfo();
+          showView("welcome"); // 確保 view class 正確
+        })();
+      });
+    </script>
+  </body>
+</html>
